@@ -363,200 +363,123 @@ const activeOTPs: { [mobile: string]: string } = {};
 
 // Send Mock OTP (Demo)
 // Send Mock OTP with dynamic random generation to eliminate hardcoded "1234"
-app.post("/api/auth/send-otp", async (req, res) => {
-  const { mobile } = req.body;
-  if (!mobile) {
-    return res.status(400).json({ error: "कृपया मोबाईल नंबर टाका!" });
+// Line 366 ते Line 559 (send-otp आणि verify-otp हे दोन्ही routes)
+
+// ── REGISTER ──
+app.post("/api/auth/register", (req, res) => {
+  const { name, mobile, password, securityQuestion, securityAnswer } = req.body;
+
+  if (!name || !mobile || !password || !securityQuestion || !securityAnswer) {
+    return res.status(400).json({ error: "सर्व माहिती भरणे आवश्यक आहे!" });
   }
 
-  // Generate a premium random 4-digit OTP
-  const otp = Math.floor(1000 + Math.random() * 9000).toString();
-  activeOTPs[mobile] = otp;
-
-  console.log(`\n======================================================`);
-  console.log(`🔒 [SECURE SMS GATEWAY] Generated OTP code for ${mobile}: ${otp}`);
-  console.log(`======================================================\n`);
-
-  let smsSentSuccess = false;
-  let utilizedGateway = "";
-
-  // Extract exactly last 10 digits for Indian SMS Gateways to prevent +91 or formatting rejections
   const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
-
-  // 1. FAST2SMS GATEWAY INTEGRATION (Extremely popular, cost-effective Indian SMS API)
-  const fast2smsKey = process.env.FAST2SMS_API_KEY || "BjcrH9JTmS0CRiwzhabt8FuKUyvg4Ylq5pk1PI2ALo3QdNeEZV7UG62pdYMgvctwjNIfyhDkVxZnm4bH";
-
-  if (fast2smsKey && cleanMobile.length === 10) {
-    try {
-      utilizedGateway = "Fast2SMS";
-      const fast2smsUrl = "https://www.fast2sms.com/dev/bulkV2";
-      const response = await fetch(fast2smsUrl, {
-        method: "POST",
-        headers: {
-          "authorization": fast2smsKey,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          route: "otp",
-          variables_values: otp,
-          numbers: cleanMobile
-        })
-      });
-
-      const data: any = await response.json();
-      if (data && data.return === true) {
-        smsSentSuccess = true;
-        console.log(`[Fast2SMS SUCCESS] Real OTP text message sent to ${cleanMobile} successfully!`);
-      } else {
-        console.warn(`[Fast2SMS WARNING] OTP Route failed for ${cleanMobile}:`, JSON.stringify(data));
-        console.log(`[Fast2SMS INFO] Automatically falling back to Quick SMS ('q' route) for immediate dispatch...`);
-        
-        // Quick SMS ('q' route) does not require strict website/domain verification
-        const qResponse = await fetch(fast2smsUrl, {
-          method: "POST",
-          headers: {
-            "authorization": fast2smsKey,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            route: "q",
-            message: `साईराम कॉम्प्युटर्स लॉगिन ओटीपी पडताळणी कोड: ${otp}. (Sairam Computers OTP code is: ${otp})`,
-            numbers: cleanMobile
-          })
-        });
-
-        const qData: any = await qResponse.json();
-        if (qData && qData.return === true) {
-          smsSentSuccess = true;
-          utilizedGateway = "Fast2SMS (Quick SMS)";
-          console.log(`[Fast2SMS SUCCESS] Fallback Quick SMS sent to ${cleanMobile} successfully!`);
-        } else {
-          console.error(`[Fast2SMS ERROR] Both OTP and Quick SMS routes failed for ${cleanMobile}:`, JSON.stringify(qData));
-        }
-      }
-    } catch (err) {
-      console.error(`[Fast2SMS EXCEPTION] Failed to dispatch SMS via Fast2SMS:`, err);
-    }
+  if (cleanMobile.length !== 10) {
+    return res.status(400).json({ error: "वैध १० अंकी मोबाईल नंबर टाका!" });
   }
 
-  // 2. TWILIO SMS GATEWAY INTEGRATION (Alternative robust international provider)
-  if (!smsSentSuccess && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    try {
-      utilizedGateway = "Twilio";
-      const sid = process.env.TWILIO_ACCOUNT_SID;
-      const token = process.env.TWILIO_AUTH_TOKEN;
-      const from = process.env.TWILIO_FROM_NUMBER;
-      const auth = Buffer.from(`${sid}:${token}`).toString("base64");
-
-      const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({
-          To: mobile.startsWith("+") ? mobile : `+91${cleanMobile}`,
-          From: from || "",
-          Body: `Sairam Computers verification secure OTP is: ${otp}. Do not share this OTP with anyone.`
-        }).toString()
-      });
-
-      if (response.ok) {
-        smsSentSuccess = true;
-        console.log(`[Twilio SUCCESS] Real OTP text message sent to ${cleanMobile} via Twilio!`);
-      } else {
-        const errorDetail = await response.text();
-        console.error(`[Twilio ERROR] response failed:`, errorDetail);
-      }
-    } catch (err) {
-      console.error(`[Twilio EXCEPTION] Failed to dispatch SMS via Twilio:`, err);
-    }
+  if (password.length < 6) {
+    return res.status(400).json({ error: "पासवर्ड किमान ६ अक्षरांचा असावा!" });
   }
 
-  // Print secure instructions in the server-side terminal logs (only visible to the workspace developer)
-  console.log(`\n======================================================`);
-  console.log(`🔒 [SECURE BUILD - ADMIN LOGS ONLY]`);
-  console.log(`Generated OTP code for ${cleanMobile}: [ ${otp} ]`);
-  console.log(`======================================================\n`);
-
-  if (!smsSentSuccess) {
-    console.log(`⚠️  [SMS GATEWAY NOTIFICATION] Real SMS was not dispatched to ${cleanMobile}. Please configure FAST2SMS_API_KEY in the environment if this is unexpected.`);
+  // Check duplicate
+  const exists = db.users.some((u: any) => u.mobile === cleanMobile);
+  if (exists) {
+    return res.status(400).json({ error: "हा मोबाईल नंबर आधीच नोंदणीकृत आहे! लॉगिन करा." });
   }
 
-  // Check if the user is already registered in the DB
-  const db = readDb();
-  const userExists = db.users.some((u: any) => u.mobile === cleanMobile || u.mobile === mobile);
+  const user: any = {
+    id: "user-" + Math.random().toString(36).substring(2, 9),
+    name: name.trim(),
+    mobile: cleanMobile,
+    password: password, // In production use bcrypt
+    securityQuestion: securityQuestion,
+    securityAnswer: securityAnswer.trim().toLowerCase(),
+    email: "",
+    photoUrl: "",
+    joinedAt: new Date().toISOString(),
+    documents: {},
+    applications: [],
+  };
 
-  // Return success message. Do NOT leak the security OTP or devOtp anywhere in the JSON response!
-  res.json({
-    success: true,
-    isNewUser: !userExists,
-    message: smsSentSuccess 
-      ? `तुमच्या अधिकृत मोबाईल नंबरवर (${mobile}) एसएमएस द्वारे ओटीपी पाठवण्यात आला आहे.`
-      : `मोबाईल पडताळणी प्रक्रीया सुरू झाली आहे. सुरक्षिततेसाठी ओटीपी थेट तुमच्या मोबाईलवर एसएमएस द्वारे पाठवण्यात येत आहे. (जर एसएमएस आला नाही, तर तुमच्या फास्ट२एसएमएस अकाऊंटमध्ये बॅलन्स किंवा डीएलटी अप्रूव्हल तपासा)`
-  });
+  db.users.push(user);
+
+  const token = `token-${user.id}`;
+  const { password: _p, securityAnswer: _s, ...safeUser } = user;
+  res.json({ success: true, user: safeUser, token });
 });
 
-// Verify OTP & Register if not exists
-app.post("/api/auth/verify-otp", (req, res) => {
-  const { mobile, otp, name, email } = req.body;
+// ── LOGIN ──
+app.post("/api/auth/login", (req, res) => {
+  const { mobile, password } = req.body;
 
-  if (!mobile || !otp) {
-    return res.status(400).json({ error: "मोबाईल नंबर आणि ओटीपी आवश्यक आहेत." });
+  if (!mobile || !password) {
+    return res.status(400).json({ error: "मोबाईल नंबर आणि पासवर्ड टाका!" });
   }
 
-  const expectedOtp = activeOTPs[mobile];
-  
-  // Eliminate hardcoded fallback bypass codes (like "1234") to enforce absolute bulletproof security in production
-  if (expectedOtp !== otp) {
-    return res.status(400).json({ error: "चुकीचा ओटीपी टाकला आहे! कृपया योग्य ओटीपी टाकून पुन्हा प्रयत्न करा." });
-  }
-
-  // Clear OTP once spent successfully to prevent play attacks
-  delete activeOTPs[mobile];
-
-  // Fetch db
-  const db = readDb();
-  let user = db.users.find((u: any) => u.mobile === mobile);
+  const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
+  const user: any = db.users.find((u: any) => u.mobile === cleanMobile);
 
   if (!user) {
-    // Register new user
-    user = {
-      id: "user-" + Math.random().toString(36).substring(2, 9),
-      name: name || "नवीन ग्राहक",
-      mobile: mobile,
-      email: email || "",
-      photoUrl: "",
-      joinedAt: new Date().toISOString(),
-      documents: {
-        aadharUrl: "",
-        aadharName: "",
-        panUrl: "",
-        panName: "",
-        marksheetUrl: "",
-        marksheetName: "",
-        photoUrl: "",
-        photoName: "",
-        signatureUrl: "",
-        signatureName: "",
-        incomeUrl: "",
-        incomeName: "",
-      },
-    };
-    db.users.push(user);
-    writeDb(db);
+    return res.status(401).json({ error: "हा मोबाईल नंबर नोंदणीकृत नाही! आधी नवीन खाते बनवा." });
   }
 
-  // Clear otp path
-  delete activeOTPs[mobile];
+  if (user.password !== password) {
+    return res.status(401).json({ error: "चुकीचा पासवर्ड! पुन्हा प्रयत्न करा." });
+  }
 
-  // Return user + token
-  res.json({
-    success: true,
-    user,
-    token: `token-${user.id}`,
-  });
+  const token = `token-${user.id}`;
+  const { password: _p, securityAnswer: _s, ...safeUser } = user;
+  res.json({ success: true, user: safeUser, token });
 });
+
+// ── FORGOT PASSWORD STEP 1: get security question ──
+app.post("/api/auth/forgot-step1", (req, res) => {
+  const { mobile } = req.body;
+  if (!mobile) return res.status(400).json({ error: "मोबाईल नंबर टाका!" });
+
+  const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
+  const user: any = db.users.find((u: any) => u.mobile === cleanMobile);
+
+  if (!user) {
+    return res.status(404).json({ error: "हा मोबाईल नंबर नोंदणीकृत नाही!" });
+  }
+
+  if (!user.securityQuestion) {
+    return res.status(400).json({ error: "या खात्यासाठी सुरक्षा प्रश्न सेट नाही!" });
+  }
+
+  res.json({ success: true, question: user.securityQuestion });
+});
+
+// ── FORGOT PASSWORD STEP 2: verify answer & reset ──
+app.post("/api/auth/forgot-step2", (req, res) => {
+  const { mobile, answer, newPassword } = req.body;
+
+  if (!mobile || !answer || !newPassword) {
+    return res.status(400).json({ error: "सर्व माहिती भरा!" });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: "पासवर्ड किमान ६ अक्षरांचा असावा!" });
+  }
+
+  const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
+  const userIndex = db.users.findIndex((u: any) => u.mobile === cleanMobile);
+
+  if (userIndex === -1) {
+    return res.status(404).json({ error: "युजर सापडला नाही!" });
+  }
+
+  const user: any = db.users[userIndex];
+  if (user.securityAnswer !== answer.trim().toLowerCase()) {
+    return res.status(401).json({ error: "चुकीचे उत्तर! पुन्हा प्रयत्न करा." });
+  }
+
+  db.users[userIndex].password = newPassword;
+  res.json({ success: true, message: "पासवर्ड यशस्वीरित्या बदलला!" });
+});
+
 
 // Get profile
 app.get("/api/auth/me", (req, res) => {
