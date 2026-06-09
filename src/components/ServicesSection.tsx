@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CreditCard, Award, GraduationCap, Sprout, ShieldAlert, CheckCircle, Smartphone, ChevronDown, ChevronUp, ClipboardList, Info } from "lucide-react";
+import { CreditCard, Award, GraduationCap, Sprout, ShieldAlert, CheckCircle, Smartphone, ChevronDown, ChevronUp, ClipboardList, Info, Share2 } from "lucide-react";
 import { ServiceItem } from "../types";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -15,6 +15,7 @@ const sectionTranslations = {
     warningBody: "कृपया नोंद घ्या: आमच्याकडे सध्या आपले सरकार सेवा (उत्पन्नाचा दाखला, जातीचा दाखला, रहिवासी दाखला) चे स्वतः दाखले व वैयक्तिक कागदपत्रे थेट बनवून मिळत नाहीत. येथे फक्त वरील शिष्यवृत्ती, ऍडमिशन, पिक विमा व तत्सम अर्ज अधिकृत वेबसाईटवर अचूक भरून दिले जातील.",
     chargeLabel: "सर्व्हिस चार्ज",
     applyBtn: "ऑनलाईन अर्ज करण्यासाठी अप्लाय करा",
+    shareBtn: "शेअर करा",
     docsLabel: "📁 सुरक्षित वॉलेट कागदपत्रे जोडली जातील:",
     eligibilityTitle: "🎓 पात्रता निकष व अटी:",
     guidelinesTitle: "📋 महत्वाच्या सूचना व नियम:",
@@ -35,6 +36,7 @@ const sectionTranslations = {
     warningBody: "Please note: We do not issue official government certificates (income, caste, or domicile certificates link) directly. We support error-free online submissions of scholarship, admission, crop insurance, and related services on official portals.",
     chargeLabel: "Service Charge",
     applyBtn: "Apply Online via Sairam",
+    shareBtn: "Share",
     docsLabel: "📁 Documents linked from Secure Wallet:",
     eligibilityTitle: "🎓 Eligibility Criteria & Terms:",
     guidelinesTitle: "📋 Important Guidelines & Steps:",
@@ -55,6 +57,7 @@ const sectionTranslations = {
     warningBody: "कृपया ध्यान दें: हमारे पास वर्तमान में सरकारी प्रमाण पत्र (आय, जाति, अधिवास प्रमाण पत्र) सीधे बनाने की सुविधा उपलब्ध नहीं है। हम केवल छात्रवृत्ति, प्रवेश परीक्षा, फसल बीमा आदि के लिए आधिकारिक पोर्टल्स पर सटीक आवेदन भरते हैं।",
     chargeLabel: "सेवा शुल्क",
     applyBtn: "ऑनलाइन आवेदन के लिए अप्लाई करें",
+    shareBtn: "शेयर करें",
     docsLabel: "📁 सुरक्षित वॉलेट से दस्तावेज़ जोड़े जाएंगे:",
     eligibilityTitle: "🎓 पात्रता मानदंड और शर्तें:",
     guidelinesTitle: "📋 महत्वपूर्ण निर्देश और नियम:",
@@ -74,6 +77,23 @@ const sectionTranslations = {
 
 export default function ServicesSection({ category, onApplyService, lang }: ServicesSectionProps) {
   const [expandedSrvKey, setExpandedSrvKey] = useState<string | null>(null);
+
+  const handleShareService = (e: React.MouseEvent, srv: ServiceItem) => {
+    e.stopPropagation();
+    const title = lang === "mr" ? srv.titleMR : lang === "hi" && srv.titleHI ? srv.titleHI : srv.title;
+    const desc = lang === "mr" ? srv.descriptionMR : lang === "hi" && srv.descriptionHI ? srv.descriptionHI : srv.description;
+    const docs = srv.mandatedDocs ? srv.mandatedDocs.join(", ") : "";
+    const text = encodeURIComponent(
+      `📋 *${title}*\n\n` +
+      `📝 *सेवा माहिती:* ${desc}\n\n` +
+      `📎 *लागणारे कागदपत्रे:* ${docs}\n\n` +
+      `💰 *सेवा शुल्क:* फक्त ₹${srv.serviceCharge}/-\n\n` +
+      `✅ अर्ज भरण्यासाठी संपर्क करा:\n` +
+      `📞 *राहुल मिसे (साईराम कॉम्प्युटर): 9011083440*\n` +
+      `🌐 ${window.location.origin}`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+  };
 
   const t = sectionTranslations[lang] || sectionTranslations.mr;
 
@@ -559,8 +579,18 @@ export default function ServicesSection({ category, onApplyService, lang }: Serv
                     <Info className="w-3.5 h-3.5" />
                     {isExpanded ? t.viewLess : t.viewMore}
                   </span>
-                  <div className="bg-rose-100/40 p-1.5 rounded-lg text-rose-700 border border-rose-200/50">
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleShareService(e, srv)}
+                      className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-lg flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                      title={t.shareBtn}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold hidden sm:inline">{t.shareBtn}</span>
+                    </button>
+                    <div className="bg-rose-100/40 p-1.5 rounded-lg text-rose-700 border border-rose-200/50">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -653,14 +683,25 @@ export default function ServicesSection({ category, onApplyService, lang }: Serv
                           <span>{t.totalCharge}: </span>
                           <span className="text-emerald-700 text-base font-black">₹{srv.serviceCharge} {t.rupees} /-</span>
                         </div>
-                        <button
-                          onClick={() => onApplyService(srv)}
-                          className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-6 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
-                          id={`apply-sub-btn-${srv.key}`}
-                        >
-                          <Smartphone className="w-4 h-4 text-white" />
-                          <span>{t.applyBtn}</span>
-                        </button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <button
+                            onClick={(e) => handleShareService(e, srv)}
+                            className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white font-black text-xs px-4 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                            id={`share-srv-btn-${srv.key}`}
+                            title={t.shareBtn}
+                          >
+                            <Share2 className="w-4 h-4 text-white" />
+                            <span>{t.shareBtn}</span>
+                          </button>
+                          <button
+                            onClick={() => onApplyService(srv)}
+                            className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-5 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                            id={`apply-sub-btn-${srv.key}`}
+                          >
+                            <Smartphone className="w-4 h-4 text-white" />
+                            <span>{t.applyBtn}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>

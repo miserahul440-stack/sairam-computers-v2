@@ -220,15 +220,27 @@ export default function JobSection({ jobs, onApplyJob, lang }: JobSectionProps) 
 
     const dates = getJobDates(job);
 
+    const ageLimit = lang === "mr" ? (job.ageLimitMR || job.ageLimit) : lang === "hi" ? (job.ageLimitHI || job.ageLimit) : job.ageLimit;
+    const feeInfo = `खुला: ₹${job.feeGeneral} | मागास: ₹${job.feeReserved} | सर्व्हिस चार्ज: ₹${job.serviceCharge}`;
+    const postsInfo = job.posts?.map(p => `${p.nameMR || p.name}: ${p.vacancy}`).join(", ") || "";
+
     const text = encodeURIComponent(
-      `🎯 *${title}* चालू झाली आहे!\n\n` +
-        `🔹 *विभाग:* ${dept}\n` +
-        `🔹 *एकूण जागा:* ${job.totalVacancies} पदे\n` +
-        `🔹 *पात्रता:* ${qual}\n` +
-        `🔹 *फॉर्म सुरू दिनांक:* ${dates.start}\n` +
-        `🔹 *शेवटची तारीख:* ${dates.last}\n\n` +
-        `✅ अर्ज १००% अचूक भरून घेण्यासाठी त्वरित *साईराम कॉम्प्युटर* (राहुल मिसे: ९०११०८३४४०) वर भेट द्या किंवा खालील लिंकवर जाऊन अप्लाय करा:\n` +
-        `👉 ${window.location.origin}`
+      `🚨 *नवीन भरती जाहीर!* 🚨\n\n` +
+      `🎯 *${title}*\n\n` +
+      `🏢 *विभाग:* ${dept}\n` +
+      `👥 *एकूण जागा:* ${job.totalVacancies} पदे\n` +
+      (postsInfo ? `📋 *पदे:* ${postsInfo}\n` : "") +
+      `🎓 *पात्रता:* ${qual}\n` +
+      `🎂 *वयाची अट:* ${ageLimit}\n\n` +
+      `📅 *सुरुवात:* ${dates.start}\n` +
+      `⏰ *शेवटची तारीख:* ${dates.last}\n\n` +
+      `💰 *फॉर्म फी:* ${feeInfo}\n\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `✅ *अर्ज साईराम कॉम्प्युटरमार्फत भरा!*\n` +
+      `📞 *राहुल मिसे: 9011083440*\n` +
+      `🌐 ${window.location.origin}\n` +
+      `━━━━━━━━━━━━━━━━━━\n` +
+      `⚡ _हे मेसेज तुमच्या मित्र-मैत्रिणींना पाठवा — कुणाची नोकरी लागेल!_`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
   };
