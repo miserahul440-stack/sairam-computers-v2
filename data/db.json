@@ -1,0 +1,272 @@
+{
+  "users": [
+    {
+      "id": "user-demo-1",
+      "name": "राहुल मिसे",
+      "mobile": "9011083440",
+      "email": "miserahul440@gmail.com",
+      "photoUrl": "",
+      "joinedAt": "2026-06-03T16:56:37.831Z",
+      "documents": {
+        "aadharUrl": "",
+        "aadharName": "",
+        "panUrl": "",
+        "panName": "",
+        "marksheetUrl": "",
+        "marksheetName": "",
+        "photoUrl": "",
+        "photoName": "",
+        "signatureUrl": "",
+        "signatureName": "",
+        "incomeUrl": "",
+        "incomeName": ""
+      }
+    }
+  ],
+  "applications": [
+    {
+      "id": "app-demo-1",
+      "userId": "user-demo-1",
+      "userName": "राहुल मिसे",
+      "userMobile": "9011083440",
+      "category": "student",
+      "formKey": "mahadbt-scholarship",
+      "formTitle": "महाडीबीटी स्कॉलरशिप फॉर्म (MahaDBT)",
+      "appliedAt": "2026-06-02T16:56:37.832Z",
+      "updatedAt": "2026-06-03T17:02:13.352Z",
+      "status": "Processing",
+      "paymentStatus": "Pending",
+      "customDetails": {
+        "कॉलेज नाव": "शासकीय तंत्रनिकेतन पुणे",
+        "कोर्स नाव": "D.Pharm (प्रथम वर्ष)",
+        "मागील टक्केवारी": "88.20%",
+        "वार्षिक उत्पन्न": "१,२०,००० रुपये"
+      },
+      "documents": {},
+      "feedback": "डॉक्युमेंट्स वेरिफाय होत आहेत. महाडीबीटी सिस्टीममध्ये अपलोडिंग सुरु आहे."
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job-1",
+      "title": "Talathi Recruitment 2026 (Revenue Department)",
+      "titleMR": "तलाठी भरती २०२६ (महसूल विभाग)",
+      "titleHI": "पटवारी (तलाठी) भर्ती 2026 (राजस्व विभाग)",
+      "department": "Revenue Department",
+      "departmentMR": "महसूल व वन विभाग, महाराष्ट्र शासन",
+      "departmentHI": "राजस्व एवं वन विभाग, महाराष्ट्र सरकार",
+      "totalVacancies": 4644,
+      "posts": [
+        {
+          "name": "Talathi (Group-C)",
+          "nameMR": "तलाठी (गट-क)",
+          "nameHI": "पटवारी (ग्रुप-सी)",
+          "vacancy": "4644"
+        }
+      ],
+      "ageLimit": "18 to 38 years (5 years relaxation for reserved categories)",
+      "ageLimitMR": "१८ ते ३८ वर्षे (मागासवर्गीय उमेदवारांसाठी ५ वर्षे सूट)",
+      "ageLimitHI": "18 से 38 वर्ष (आरक्षित उम्मीदवारों के लिए 5 वर्ष की छूट)",
+      "qualification": "Graduation in any stream + MSCIT or equivalent computer certificate.",
+      "qualificationMR": "कोणत्याही शाखेतील पदवी (Graduation in any stream) + MSCIT किंवा समकक्ष संगणक परीक्षा उत्तीर्ण.",
+      "qualificationHI": "किसी भी विषय में स्नातक (Graduation) + MSCIT या समकक्ष कंप्यूटर परीक्षा उत्तीर्ण।",
+      "importantDocuments": [
+        "Aadhar Card",
+        "10th & 12th Board Certificates",
+        "Graduation Marksheets",
+        "Caste Certificate (if applicable)",
+        "Non-Creamy Layer Certificate",
+        "Domicile Certificate",
+        "Photo & Signature"
+      ],
+      "importantDocumentsMR": [
+        "आधार कार्ड (Aadhar Card)",
+        "१० वी & १२ वी बोर्ड प्रमाणपत्र",
+        "पदवी गुणपत्रिका (Graduation Marksheets)",
+        "जातीचा दाखला (Caste Certificate, if applicable)",
+        "नॉन-क्रिमिलेअर प्रमाणपत्र",
+        "डोमासाईल प्रमाणपत्र",
+        "फोटो & सही"
+      ],
+      "importantDocumentsHI": [
+        "आधार कार्ड (Aadhar Card)",
+        "10वीं और 12वीं बोर्ड प्रमाणपत्र",
+        "स्नातक अंकपत्र (Graduation Marksheets)",
+        "जाति प्रमाण पत्र (यदि लागू हो)",
+        "नॉन-क्रीमी लेयर प्रमाण पत्र",
+        "अधिवास प्रमाण पत्र (Domicile)",
+        "फोटो और हस्ताक्षर"
+      ],
+      "feeGeneral": 1000,
+      "feeReserved": 900,
+      "serviceCharge": 100,
+      "lastDate": "2026-07-15",
+      "startDate": "2026-06-23",
+      "description": "Official notification released for the recruitment of Talathi posts under the Revenue Department of Government of Maharashtra.",
+      "descriptionMR": "महाराष्ट्र शासनाच्या महसूल विभागांतर्गत तलाठी पदांच्या भरतीसाठी अधिकृत जाहिरात प्रसिद्ध झाली आहे.",
+      "descriptionHI": "महाराष्ट्र सरकार के राजस्व विभाग के अंतर्गत तलाठी (पटवारी) पदों पर भर्ती के लिए आधिकारिक विज्ञापन जारी।",
+      "whatsappMessage": "🔥 *तलाठी भरती २०२६* प्रसिद्ध!\n\n🔹 *एकूण जागा:* ४६४४ पदे\n🔹 *पात्रता:* पदवी उत्तीर्ण\n🔹 *शेवटची तारीख:* १५ जुलै २०२६\n\nसाईराम कॉम्प्युटरवर फॉर्म भरून मिळेल!\n✨ *आपला फॉर्म आजच बुक करा!*\n👉 *अधिक माहितीसाठी व फॉर्म भरण्यासाठी आमच्या साईटला भेट द्या.*\n📞 *संपर्क:* ९०११०८३४४० (राहुल मिसे)"
+    },
+    {
+      "id": "job-2",
+      "title": "Maharashtra Police Constable Recruitment 2026",
+      "titleMR": "महाराष्ट्र पोलीस शिपाई भरती २०२६",
+      "titleHI": "महाराष्ट्र पुलिस कांस्टेबल भर्ती 2026",
+      "department": "Home Department",
+      "departmentMR": "गृह विभाग, महाराष्ट्र पोलीस",
+      "departmentHI": "गृह विभाग, महाराष्ट्र पुलिस",
+      "totalVacancies": 17471,
+      "posts": [
+        {
+          "name": "Police Constable",
+          "nameMR": "पोलीस शिपाई (Police Constable)",
+          "nameHI": "पुलिस कांस्टेबल",
+          "vacancy": "9595"
+        },
+        {
+          "name": "Police Driver",
+          "nameMR": "चालक शिपाई (Police Driver)",
+          "nameHI": "पुलिस चालक",
+          "vacancy": "4800"
+        },
+        {
+          "name": "SRPF Police Constable",
+          "nameMR": "राज्य राखीव पोलीस बल शिपाई (SRPF)",
+          "nameHI": "एसआरपीएफ कांस्टेबल",
+          "vacancy": "3076"
+        }
+      ],
+      "ageLimit": "18 to 28 years (Reserved category up to 33 years)",
+      "ageLimitMR": "१८ ते २८ वर्षे (मागासवर्गीय: ३३ वर्षांपर्यंत)",
+      "ageLimitHI": "18 से 28 वर्ष (आरक्षित वर्ग: 33 वर्ष तक)",
+      "qualification": "12th Pass (HSC) + Physical standards qualification + Driving license (for Driver post).",
+      "qualificationMR": "१२ वी उत्तीर्ण (HSC Pass) + आवश्यक शारीरिक पात्रता व हलके व वजनदार वाहन चालक परवाना (चालक पदासाठी).",
+      "qualificationHI": "12वीं उत्तीर्ण (HSC Pass) + आवश्यक शारीरिक मानक + वाहन चालक लाइसेंस (चालक पद के लिए)।",
+      "importantDocuments": [
+        "Aadhar Card / PAN Card",
+        "10th and 12th Board Certificates",
+        "TC / School Leaving Certificate",
+        "Domicile Certificate",
+        "Caste Certificate & Non-Creamy Layer",
+        "Light Motor Vehicle Driving License (for Driver variant)"
+      ],
+      "importantDocumentsMR": [
+        "आधार कार्ड / पॅन कार्ड",
+        "१० वी आणि १२ वी प्रमाणपत्र",
+        "शाळा सोडल्याचा दाखला (TC)",
+        "रहिवासी दाखला / डोमासाईल",
+        "जातीचा दाखला & नॉन-क्रिमिलेअर",
+        "हलके वाहन परवाना (ड्रायव्हर शिपाई साठी)"
+      ],
+      "importantDocumentsHI": [
+        "आधार कार्ड / पैन कार्ड",
+        "10वीं और 12वीं बोर्ड प्रमाण पत्र",
+        "स्कूल छोड़ने का प्रमाण पत्र (TC)",
+        "मूल निवासी प्रमाण पत्र (Domicile)",
+        "जाति प्रमाण पत्र और नॉन-क्रीमी लेयर",
+        "हल्के वाहन चलाने का लाइसेंस (चालक पद के लिए)"
+      ],
+      "feeGeneral": 450,
+      "feeReserved": 350,
+      "serviceCharge": 80,
+      "lastDate": "2026-06-30",
+      "startDate": "2026-06-01",
+      "description": "Maharashtra State Home Department has launched the recruitment process for Constable, Driver, and SRPF Constable posts.",
+      "descriptionMR": "महाराष्ट्र राज्य गृह विभागातर्फे पोलीस दलात चालक, शिपाई व SRPF शिपाई पदांची भरती प्रक्रिया सुरु आहे.",
+      "descriptionHI": "महाराष्ट्र राज्य गृह विभाग द्वारा पुलिस कांस्टेबल, चालक कांस्टेबल और SRPF कांस्टेबल पदों पर भर्ती प्रक्रिया जारी।",
+      "whatsappMessage": "👮‍♂️ *महाराष्ट्र पोलीस शिपाई भरती २०२६* चालू!\n\n🔹 *एकूण जागा:* १७,४७१\n🔹 *पात्रता:* १२ वी उत्तीर्ण\n🔹 *शेवटची तारीख:* ३० जून २०२६\n\nआपला फॉर्म १००% अचूक भरण्यासाठी साईराम कॉम्प्युटरला भेट द्या.\n📞 *संपर्क:* ९०११०८३४४०"
+    },
+    {
+      "id": "job-3",
+      "title": "Animal Husbandry Department Recruitment 2026",
+      "titleMR": "पशुसंवर्धन विभाग भरती २०२६",
+      "titleHI": "पशुपालन विभाग भर्ती 2026",
+      "department": "Animal Husbandry",
+      "departmentMR": "पशुसंवर्धन विभाग, महाराष्ट्र शासन",
+      "departmentHI": "पशुपालन विभाग, महाराष्ट्र सरकार",
+      "totalVacancies": 446,
+      "posts": [
+        {
+          "name": "Livestock Supervisor",
+          "nameMR": "पशुधन पर्यवेक्षक",
+          "nameHI": "पशुधन पर्यवेक्षक",
+          "vacancy": "376"
+        },
+        {
+          "name": "Senior Clerk",
+          "nameMR": "वरिष्ठ लिपिक",
+          "nameHI": "वरिष्ठ लिपिक",
+          "vacancy": "44"
+        },
+        {
+          "name": "Stenographer",
+          "nameMR": "लघुलेखक",
+          "nameHI": "आशुलिपिक (Stenographer)",
+          "vacancy": "26"
+        }
+      ],
+      "ageLimit": "18 to 38 years (Reserved category up to 43 years)",
+      "ageLimitMR": "१८ ते ३८ वर्षे (मागासवर्गीय: ४३ वर्षांपर्यंत)",
+      "ageLimitHI": "18 से 38 वर्ष (आरक्षित वर्ग: 43 वर्ष तक)",
+      "qualification": "Livestock Supervisor requires dairy development/animal husbandry diploma; Senior Clerk requires degree graduation + Marathi 30 and English 40 typing certification.",
+      "qualificationMR": "पशुधन पर्यवेक्षक साठी दुग्ध व्यवसाय/पशुसंवर्धन डिप्लोमा; लिपीक पदासाठी पदवी उत्तीर्ण + मराठी ३० आणि इंग्रजी ४० टायपिंग परीक्षा उत्तीर्ण.",
+      "qualificationHI": "पशुधन पर्यवेक्षक के लिए डेयरी/पशुपालन डिप्लोमा; वरिष्ठ लिपिक के लिए स्नातक डिग्री + मराठी 30 और अंग्रेजी 40 टाइपिंग परीक्षा उत्तीर्ण।",
+      "importantDocuments": [
+        "Aadhar Card",
+        "Educational certificates (Diploma / Degree Graduation)",
+        "Typing Certificate (for Clerk post)",
+        "Domicile Certificate & Caste Certificate (if applicable)",
+        "Photo & Signature"
+      ],
+      "importantDocumentsMR": [
+        "आधार कार्ड",
+        "शैक्षणिक पात्रता प्रमाणपत्रे (डिप्लोमा/डिग्री)",
+        "टायपिंग प्रमाणपत्र (लिपिक पदासाठी)",
+        "डोमासाईल & कास्ट सर्टिफिकेट (लागू असल्यास)",
+        "फोटो & सही"
+      ],
+      "importantDocumentsHI": [
+        "आधार कार्ड",
+        "शैक्षणिक योग्यता प्रमाण पत्र (डिप्लोमा/डिग्री)",
+        "टाइपिंग सर्टिफिकेट (लिपिक पद के लिए)",
+        "मूल निवासी और जाति प्रमाण पत्र (यदि लागू हो)",
+        "फोटो और हस्ताक्षर"
+      ],
+      "feeGeneral": 1000,
+      "feeReserved": 900,
+      "serviceCharge": 100,
+      "lastDate": "2026-06-25",
+      "startDate": "2026-06-05",
+      "description": "Online applications are open for technical and non-technical Group-C posts under the Animal Husbandry Department.",
+      "descriptionMR": "पशुसंवर्धन विभाग अंतर्गत गट-क मधील तांत्रिक व अतांत्रिक संवर्गातील पदांची ऑनलाईन अर्ज प्रक्रिया सुरु.",
+      "descriptionHI": "पशुपालन विभाग के अंतर्गत तकनीकी और गैर-तकनीकी ग्रुप-सी पदों पर ऑनलाइन भर्ती प्रक्रिया जारी।",
+      "whatsappMessage": "🐄 *पशुसंवर्धन विभाग भरती २०२६*\n\n🔹 *एकूण जागा:* ४४६ पदे\n🔹 *पात्रता:* डिप्लोमा / डिग्री उत्तीर्ण\n🔹 *शेवटची तारीख:* २५ जून २०२६\n\nअचूक अर्ज भरण्यासाठी संपर्क करा:\n📞 *साईराम कॉम्प्युटर - ९०११०८३४४०*"
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann-1",
+      "title": "MahaDBT scholarship new registration forms have started. Students are advised to apply at Sairam Computers without waiting for the deadline.",
+      "titleMR": "महाडीबीटी स्कॉलरशिपसाठी नवीन अर्ज भरणे सुरू झाले आहे. सर्व महाविद्यालयीन विद्यार्थ्यांना सूचित करण्यात येते की शेवटच्या तारखेची वाट न पाहता त्वरित संपर्क साधावा.",
+      "titleHI": "महाडीबीटी छात्रवृत्ति के नए आवेदन शुरू हो गए हैं। छात्रों को अंतिम तिथि का इंतजार किए बिना साईराम कंप्यूटर पर तुरंत आवेदन करने की सलाह दी जाती है।",
+      "type": "new",
+      "date": "2026-06-02"
+    },
+    {
+      "id": "ann-2",
+      "title": "PM Kisan scheme and crop insurance forms deadline is extended to 31 July 2026. Register at Sairam Computers today.",
+      "titleMR": "शेतकरी बांधवांसाठी पीएम किसान योजना आणि पीक विमा भरण्याची मुदत ३१ जुलै २०२६ पर्यंत वाढविण्यात आली आहे. आपल्या नावावर पीक विमा करून घ्यावा.",
+      "titleHI": "किसानों के लिए पीएम किसान योजना और फसल बीमा की अंतिम तिथि 31 जुलाई 2026 तक बढ़ा दी गई है। भुगतान और आवेदन साईराम कंप्यूटर पर करें।",
+      "type": "deadline",
+      "date": "2026-06-01"
+    },
+    {
+      "id": "ann-3",
+      "title": "New Ayushman Bharat Health Card (Rs 5 Lakh Free Treatment Slat) & Aadhar Card updates are available instantly at Sairam Computers.",
+      "titleMR": "नवीन आयुष्मान भारत कार्ड (५ लाख रुपयांचा मोफत उपचार कार्ड) आणि आधार अपडेट फॉर्म साईराम कॉम्प्युटरवर काढून मिळतील.",
+      "titleHI": "नया आयुष्मान भारत कार्ड (5 लाख तक मुफ्त इलाज का कार्ड) और आधार कार्ड अपडेट फॉर्म साईराम कंप्यूटर पर तुरंत बनाएं।",
+      "type": "important",
+      "date": "2026-05-30"
+    }
+  ]
+}

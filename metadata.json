@@ -1,0 +1,6 @@
+{
+  "name": "Sairam Computers",
+  "description": "साईराम कॉम्प्युटर - ऑनलाईन फॉर्म आणि शासकीय योजना सेवा केंद्र. सर्व कॉलेज फॉर्म्स, शेतकरी योजना, आणि भरती महाभरती अपडेट्स एकाच ठिकाणी.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
