@@ -382,6 +382,8 @@ app.post("/api/auth/register", (req, res) => {
     return res.status(400).json({ error: "पासवर्ड किमान ६ अक्षरांचा असावा!" });
   }
 
+  const db = readDb();
+
   // Check duplicate
   const exists = db.users.some((u: any) => u.mobile === cleanMobile);
   if (exists) {
@@ -392,7 +394,7 @@ app.post("/api/auth/register", (req, res) => {
     id: "user-" + Math.random().toString(36).substring(2, 9),
     name: name.trim(),
     mobile: cleanMobile,
-    password: password, // In production use bcrypt
+    password: password,
     securityQuestion: securityQuestion,
     securityAnswer: securityAnswer.trim().toLowerCase(),
     email: "",
@@ -403,6 +405,7 @@ app.post("/api/auth/register", (req, res) => {
   };
 
   db.users.push(user);
+  writeDb(db);
 
   const token = `token-${user.id}`;
   const { password: _p, securityAnswer: _s, ...safeUser } = user;
@@ -417,6 +420,7 @@ app.post("/api/auth/login", (req, res) => {
     return res.status(400).json({ error: "मोबाईल नंबर आणि पासवर्ड टाका!" });
   }
 
+  const db = readDb();
   const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
   const user: any = db.users.find((u: any) => u.mobile === cleanMobile);
 
@@ -438,6 +442,7 @@ app.post("/api/auth/forgot-step1", (req, res) => {
   const { mobile } = req.body;
   if (!mobile) return res.status(400).json({ error: "मोबाईल नंबर टाका!" });
 
+  const db = readDb();
   const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
   const user: any = db.users.find((u: any) => u.mobile === cleanMobile);
 
@@ -464,6 +469,7 @@ app.post("/api/auth/forgot-step2", (req, res) => {
     return res.status(400).json({ error: "पासवर्ड किमान ६ अक्षरांचा असावा!" });
   }
 
+  const db = readDb();
   const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
   const userIndex = db.users.findIndex((u: any) => u.mobile === cleanMobile);
 
