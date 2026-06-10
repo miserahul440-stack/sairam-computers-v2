@@ -303,16 +303,18 @@ export default function JobSection({ jobs, onApplyJob, lang }: JobSectionProps) 
                   </h3>
 
                   {/* Clean Formatted Alert Dates and Fee Summary */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:text-xs text-gray-700 font-bold">
-                    <span className="flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-md border border-emerald-100">
-                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{t.startDateLabel}: <strong className="font-mono text-gray-950 font-bold">{dates.start}</strong></span>
-                    </span>
-                    <span className="flex items-center gap-1 bg-rose-50 text-rose-800 px-2.5 py-1 rounded-md border border-rose-100">
-                      <Calendar className="w-3.5 h-3.5 text-rose-600" />
-                      <span>{t.lastDateLabel}: <strong className="font-mono text-rose-950 font-black">{dates.last}</strong></span>
-                    </span>
-                    <span className="flex items-center gap-1 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-md border border-amber-100">
+                  <div className="flex flex-col gap-1.5 text-[11px] sm:text-xs font-bold mt-1">
+                    <div className="flex flex-wrap gap-2">
+                      <span className="flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-md border border-emerald-100">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>अर्ज सुरुवात: <strong className="font-mono text-gray-950">{dates.start}</strong></span>
+                      </span>
+                      <span className="flex items-center gap-1 bg-rose-50 text-rose-800 px-2.5 py-1 rounded-md border border-rose-100">
+                        <Calendar className="w-3.5 h-3.5 text-rose-600" />
+                        <span>शेवटची तारीख: <strong className="font-mono text-rose-950 font-black">{dates.last}</strong></span>
+                      </span>
+                    </div>
+                    <span className="flex items-center gap-1 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-md border border-amber-100 w-fit">
                       <span>{t.serviceChargeLabel}: <strong className="font-mono text-amber-950 font-black">₹{job.serviceCharge}</strong></span>
                     </span>
                   </div>
