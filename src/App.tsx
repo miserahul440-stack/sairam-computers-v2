@@ -279,47 +279,24 @@ export default function App() {
     setActiveTab("home");
   };
 
-  // Admin control verification with secure OTP delivery for Rahul Mise (+91 9011083440)
-  const handleSendAdminOtp = async () => {
-    setAdminError("");
-    try {
-      const response = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: "9011083440" }),
-      });
-
-      if (!response.ok) {
-        throw new Error("ओटीपी पाठवताना अडचण आली.");
-      }
-
-      const data = await response.json();
-      setAdminOtpSent(true);
-    } catch (err: any) {
-      setAdminError(err.message || "ओटीपी सर्व्हरवरून पाठवता आला नाही.");
-    }
-  };
-
+  // Admin login with username + password (no OTP)
   const handleAdminVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminError("");
-
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mobile: "9011083440", otp: adminPassword }),
+        body: JSON.stringify({ username: "rahul_admin", password: adminPassword }),
       });
-
       if (response.ok) {
         setIsAdminLoggedIn(true);
         sessionStorage.setItem("sairam_admin_active", "true");
         setActiveTab("admin");
         setAdminPassword("");
-        setAdminOtpSent(false);
       } else {
         const data = await response.json();
-        setAdminError(data.error || "पासवर्ड किंवा ओटीपी चुकीचा आहे!");
+        setAdminError(data.error || "चुकीचा पासवर्ड!");
       }
     } catch (err) {
       setAdminError("सर्व्हरशी जोडणी करण्यात अडचण आली.");
@@ -647,9 +624,9 @@ export default function App() {
               /* Secured login interface for Rahul Mise */
               <div className="max-w-md mx-auto bg-white rounded-3xl border border-rose-100 shadow-xl p-6 mt-12 text-center">
                 <span className="text-4xl block">🔒</span>
-                <h3 className="font-extrabold text-lg text-gray-900 mt-2">{t.adminPromptHeader}</h3>
+                <h3 className="font-extrabold text-lg text-gray-900 mt-2">साईराम ॲडमीन सुरक्षा लॉगिन</h3>
                 <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto font-medium">
-                  अधिकृत ॲडमीन राहुल मिसे यांच्या सुधारीत सुरक्षित पडताळणीसाठी हा पर्याय आहे. कृपया खालील बटनावर क्लिक करून अधिकृत मोबाईल वर सुरक्षा ओटीपी मिळवा.
+                  फक्त अधिकृत ॲडमीन (राहुल मिसे) साठी
                 </p>
 
                 {adminError && (
@@ -658,55 +635,26 @@ export default function App() {
                   </div>
                 )}
 
-                {!adminOtpSent ? (
-                  <div className="mt-6">
-                    <button
-                      type="button"
-                      onClick={handleSendAdminOtp}
-                      className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-xs py-3.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      🔐 राहुल सर यांच्या मोबाईलवर OTP पाठवा
-                    </button>
-                    <span className="text-[10px] text-gray-400 font-bold block mt-2">
-                       अधिकृत नंबर: +91 9011083440
-                    </span>
+                <form onSubmit={handleAdminVerify} className="mt-5 space-y-4 text-left">
+                  <div>
+                    <label className="text-xs font-black text-gray-700 block mb-1">पासवर्ड</label>
+                    <input
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      placeholder="Admin पासवर्ड टाका"
+                      className="w-full px-4 py-3 border border-gray-200 focus:border-rose-600 rounded-xl text-sm font-bold outline-none transition-all"
+                      required
+                      autoFocus
+                    />
                   </div>
-                ) : (
-                  <form onSubmit={handleAdminVerify} className="mt-5 space-y-4">
-                    <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 text-[11px] text-emerald-950 font-bold mb-3 text-left leading-relaxed">
-                      🔒 <strong>सुरक्षित ॲडमीन पडताळणी:</strong> नवीन सुरक्षित सिस्टीमनुसार सुरक्षा पिन थेट राहुल मिसे सर यांच्या वैयक्तिक अधिकृत मोबाईल नंबरवर व्हॉट्सॲपवर पाठवण्यात आला आहे.
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-black text-gray-700 block mb-1 text-left">सुरक्षा ओटीपी टाका (Enter Secure OTP)</label>
-                      <input
-                        type="password"
-                        maxLength={6}
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value.replace(/\D/g, ""))}
-                        placeholder="४ किंवा ६ अंकी सुरक्षा कोड"
-                        className="w-full text-center py-3 border border-gray-200 hover:border-rose-455 focus:border-rose-600 rounded-xl text-lg font-black tracking-widest outline-none transition-all"
-                        required
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAdminOtpSent(false)}
-                        className="w-1/3 border border-gray-300 text-gray-600 text-xs font-bold py-3 rounded-xl hover:bg-gray-50 cursor-pointer"
-                      >
-                        मागे
-                      </button>
-                      <button
-                        type="submit"
-                        className="w-2/3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-                      >
-                        🔓 ॲडमीन पॅनेल अनलॉक करा
-                      </button>
-                    </div>
-                  </form>
-                )}
+                  <button
+                    type="submit"
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-sm py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    🔓 ॲडमीन पॅनेल उघडा
+                  </button>
+                </form>
               </div>
             ) : (
               /* Unlocked admin metrics console */
