@@ -1,17 +1,8 @@
-// Sairam Computers Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'sairam-computers-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+// Sairam Computers PWA Service Worker - v3 (Network First)
+const CACHE_NAME = 'sairam-computers-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -19,9 +10,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
       );
     }).then(() => self.clients.claim())
@@ -29,15 +18,28 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // API calls - always network, never cache
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // HTML pages - network first, fallback to cache
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Static assets - network first
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Return cached response if found, otherwise perform network fetch
-      return cachedResponse || fetch(event.request).catch(() => {
-        // Fallback for document pages if offline
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
-    })
+    fetch(event.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
