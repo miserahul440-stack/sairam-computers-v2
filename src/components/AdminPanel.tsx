@@ -31,6 +31,7 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
   const [jobDept, setJobDept] = useState("");
   const [jobVacancies, setJobVacancies] = useState("");
   const [jobQual, setJobQual] = useState("");
+  const [jobStartDate, setJobStartDate] = useState("");
   const [jobLastDate, setJobLastDate] = useState("");
   const [jobServiceCharge, setJobServiceCharge] = useState("");
   const [jobFeeGeneral, setJobFeeGeneral] = useState("");
@@ -38,6 +39,10 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
   const [jobAgeLimit, setJobAgeLimit] = useState("");
   const [jobPostsList, setJobPostsList] = useState("");
   const [jobDesc, setJobDesc] = useState("");
+  const [jobDocs, setJobDocs] = useState("आधार कार्ड
+१० वी गुणपत्रिका
+१२ वी गुणपत्रिका
+फोटो & सही");
 
   // New announcement states
   const [newAnnText, setNewAnnText] = useState("");
@@ -246,17 +251,24 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
         },
         body: JSON.stringify({
           titleMR: jobTitle,
+          title: jobTitle,
           departmentMR: jobDept,
+          department: jobDept,
           totalVacancies: jobVacancies,
           qualification: jobQual,
+          qualificationMR: jobQual,
+          startDate: jobStartDate || undefined,
           lastDate: jobLastDate,
           serviceCharge: jobServiceCharge,
           feeGeneral: jobFeeGeneral,
           feeReserved: jobFeeReserved,
           ageLimit: jobAgeLimit,
+          ageLimitMR: jobAgeLimit,
           posts: parsedPosts,
-          importantDocuments: ["आधार कार्ड", "१० वी गुणपत्रिका", "१२ वी गुणपत्रिका", "फोटो & सही"],
+          mandatedDocs: jobDocs.split("\n").map(d => d.trim()).filter(Boolean),
+          importantDocuments: jobDocs.split("\n").map(d => d.trim()).filter(Boolean),
           description: jobDesc,
+          descriptionMR: jobDesc,
         }),
       });
 
@@ -277,6 +289,8 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
       setJobAgeLimit("");
       setJobPostsList("");
       setJobDesc("");
+      setJobStartDate("");
+      setJobDocs("आधार कार्ड\n१० वी गुणपत्रिका\n१२ वी गुणपत्रिका\nफोटो & सही");
       setShowAddJob(false);
 
       onRefreshAll();
@@ -910,138 +924,115 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
           </div>
 
           {showAddJob ? (
-            <form onSubmit={handleAddJobSubmit} className="space-y-4 text-xs h-96 overflow-y-auto pr-1.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">जाहिरात शीर्षक (उदा. तलाठी भरती २०२६):</label>
-                  <input
-                    type="text"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    className="w-full text-xs font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">विभाग / महसूल (उदा महसूल विभाग):</label>
-                  <input
-                    type="text"
-                    value={jobDept}
-                    onChange={(e) => setJobDept(e.target.value)}
-                    className="w-full text-xs font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
+            <form onSubmit={handleAddJobSubmit} className="space-y-4 text-xs max-h-[70vh] overflow-y-auto pr-2">
 
-              <div className="grid grid-cols-3 gap-3">
+              {/* Block 1: Basic Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
+                <h4 className="font-black text-blue-800 text-xs flex items-center gap-1.5">📋 मूलभूत माहिती</h4>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">एकूण जागा संख्या (उदा. ४६४४):</label>
-                  <input
-                    type="number"
-                    value={jobVacancies}
-                    onChange={(e) => setJobVacancies(e.target.value)}
-                    className="w-full text-xs font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">🏷️ जाहिरात शीर्षक *</label>
+                  <input type="text" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
+                    placeholder="उदा. तलाठी भरती २०२६ (महसूल विभाग)"
+                    className="w-full text-xs font-bold p-2.5 border border-blue-200 rounded-xl outline-none focus:border-blue-500" required />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">शेवटची तारीख (YYYY-MM-DD):</label>
-                  <input
-                    type="date"
-                    value={jobLastDate}
-                    onChange={(e) => setJobLastDate(e.target.value)}
-                    className="w-full text-xs font-mono font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">🏢 विभागाचे नाव *</label>
+                  <input type="text" value={jobDept} onChange={(e) => setJobDept(e.target.value)}
+                    placeholder="उदा. महसूल व वन विभाग, महाराष्ट्र शासन"
+                    className="w-full text-xs font-bold p-2.5 border border-blue-200 rounded-xl outline-none focus:border-blue-500" required />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">माझी फॉर्म फी चार्ज (₹):</label>
-                  <input
-                    type="number"
-                    value={jobServiceCharge}
-                    onChange={(e) => setJobServiceCharge(e.target.value)}
-                    className="w-full text-xs font-mono font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">📝 भरती माहिती (थोडक्यात)</label>
+                  <textarea value={jobDesc} onChange={(e) => setJobDesc(e.target.value)}
+                    placeholder="उदा. महसूल व वन विभाग अंतर्गत ४६४४ पदांची अधिकृत जाहिरात..."
+                    rows={2} className="w-full text-xs font-bold p-2.5 border border-blue-200 rounded-xl outline-none focus:border-blue-500 resize-none" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">शासकीय फी: खुला प्रवर्ग (₹):</label>
-                  <input
-                    type="number"
-                    value={jobFeeGeneral}
-                    onChange={(e) => setJobFeeGeneral(e.target.value)}
-                    className="w-full text-xs font-mono font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
+              {/* Block 2: Dates & Vacancies */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                <h4 className="font-black text-emerald-800 text-xs flex items-center gap-1.5">📅 तारखा आणि जागा</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-600 block mb-1">✅ अर्ज सुरुवात तारीख</label>
+                    <input type="date" value={jobStartDate} onChange={(e) => setJobStartDate(e.target.value)}
+                      className="w-full text-xs font-mono font-bold p-2.5 border border-emerald-200 rounded-xl outline-none focus:border-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-600 block mb-1">⏰ शेवटची तारीख *</label>
+                    <input type="date" value={jobLastDate} onChange={(e) => setJobLastDate(e.target.value)}
+                      className="w-full text-xs font-mono font-bold p-2.5 border border-emerald-200 rounded-xl outline-none focus:border-emerald-500" required />
+                  </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-gray-500 block mb-1">शासकीय फी: राखीव प्रवर्ग (₹):</label>
-                  <input
-                    type="number"
-                    value={jobFeeReserved}
-                    onChange={(e) => setJobFeeReserved(e.target.value)}
-                    className="w-full text-xs font-mono font-bold p-2.5 border border-gray-200 rounded-xl"
-                    required
-                  />
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">👥 एकूण जागा संख्या *</label>
+                  <input type="number" value={jobVacancies} onChange={(e) => setJobVacancies(e.target.value)}
+                    placeholder="उदा. 4644"
+                    className="w-full text-xs font-bold p-2.5 border border-emerald-200 rounded-xl outline-none focus:border-emerald-500" required />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">📋 पदे आणि जागा (प्रत्येक ओळीत: पदनाव:जागासंख्या) *</label>
+                  <textarea value={jobPostsList} onChange={(e) => setJobPostsList(e.target.value)}
+                    placeholder={"तलाठी (गट-क):4644
+तलाठी (महिला राखीव):500"}
+                    rows={3} className="w-full text-xs font-bold p-2.5 border border-emerald-200 rounded-xl outline-none focus:border-emerald-500 resize-none" required />
+                  <p className="text-[9px] text-gray-400 mt-1">फॉरमॅट: पदनाव:जागासंख्या — प्रत्येक पद नवीन ओळीत</p>
                 </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 block mb-1">वयाच्या पात्रता मर्यादा:</label>
-                <input
-                  type="text"
-                  value={jobAgeLimit}
-                  onChange={(e) => setJobAgeLimit(e.target.value)}
-                  placeholder="उदा. १८ ते ३८ वर्षे (मागासवर्गीय: ५ वर्षे सूट)"
-                  className="w-full text-xs font-bold p-2.5 border border-gray-200 rounded-xl"
-                  required
-                />
+              {/* Block 3: Eligibility */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                <h4 className="font-black text-amber-800 text-xs flex items-center gap-1.5">🎓 पात्रता</h4>
+                <div>
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">📚 शैक्षणिक पात्रता *</label>
+                  <input type="text" value={jobQual} onChange={(e) => setJobQual(e.target.value)}
+                    placeholder="उदा. कोणत्याही शाखेतील पदवी + MSCIT"
+                    className="w-full text-xs font-bold p-2.5 border border-amber-200 rounded-xl outline-none focus:border-amber-500" required />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-600 block mb-1">🎂 वयाची अट *</label>
+                  <input type="text" value={jobAgeLimit} onChange={(e) => setJobAgeLimit(e.target.value)}
+                    placeholder="उदा. १८ ते ३८ वर्षे (मागासवर्गीय उमेदवारांसाठी ५ वर्षे सूट)"
+                    className="w-full text-xs font-bold p-2.5 border border-amber-200 rounded-xl outline-none focus:border-amber-500" required />
+                </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 block mb-1">शैक्षणिक पात्रता:</label>
-                <input
-                  type="text"
-                  value={jobQual}
-                  onChange={(e) => setJobQual(e.target.value)}
-                  placeholder="उदा. कोणत्याही शाखेतील पदवी उत्तीर्ण + MSCIT"
-                  className="w-full text-xs font-bold p-2.5 border border-gray-200 rounded-xl"
-                  required
-                />
+              {/* Block 4: Fees */}
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-3">
+                <h4 className="font-black text-rose-800 text-xs flex items-center gap-1.5">💰 फी माहिती</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-600 block mb-1">खुला प्रवर्ग फी (₹) *</label>
+                    <input type="number" value={jobFeeGeneral} onChange={(e) => setJobFeeGeneral(e.target.value)}
+                      placeholder="1000"
+                      className="w-full text-xs font-mono font-bold p-2.5 border border-rose-200 rounded-xl outline-none focus:border-rose-500" required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-600 block mb-1">राखीव प्रवर्ग फी (₹) *</label>
+                    <input type="number" value={jobFeeReserved} onChange={(e) => setJobFeeReserved(e.target.value)}
+                      placeholder="900"
+                      className="w-full text-xs font-mono font-bold p-2.5 border border-rose-200 rounded-xl outline-none focus:border-rose-500" required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-600 block mb-1">साईराम सर्व्हिस फी (₹) *</label>
+                    <input type="number" value={jobServiceCharge} onChange={(e) => setJobServiceCharge(e.target.value)}
+                      placeholder="100"
+                      className="w-full text-xs font-mono font-bold p-2.5 border border-rose-200 rounded-xl outline-none focus:border-rose-500" required />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 block mb-1">पदे निहाय जागांची यादी (दर ओळीला एक, फॉरमॅट: पदनाव:जागा):</label>
-                <textarea
-                  value={jobPostsList}
-                  onChange={(e) => setJobPostsList(e.target.value)}
-                  placeholder="उदा.&#10;तलाठी (खुला संवर्ग):१४५ पदे&#10;तलाठी (महिला राखीव):६० पदे"
-                  rows={3}
-                  className="w-full text-xs font-bold p-3 border border-gray-200 rounded-xl outline-none"
-                  required
-                />
+              {/* Block 5: Documents */}
+              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-3">
+                <h4 className="font-black text-purple-800 text-xs flex items-center gap-1.5">📎 आवश्यक कागदपत्रे</h4>
+                <textarea value={jobDocs} onChange={(e) => setJobDocs(e.target.value)}
+                  rows={5} className="w-full text-xs font-bold p-2.5 border border-purple-200 rounded-xl outline-none focus:border-purple-500 resize-none" />
+                <p className="text-[9px] text-gray-400">प्रत्येक कागदपत्र नवीन ओळीत लिहा</p>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 block mb-1">भरती जाहिरातीची थोडक्यात माहिती:</label>
-                <textarea
-                  value={jobDesc}
-                  onChange={(e) => setJobDesc(e.target.value)}
-                  placeholder="महसूल व वन विभाग अंतर्गत ४६४४ पदांचे अधिकृत जाहीरात प्रसिद्ध..."
-                  rows={2.5}
-                  className="w-full text-xs font-semibold p-3 border border-gray-200 rounded-xl outline-none resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl cursor-pointer block text-center"
-              >
-                जाहिरात प्रकाशित करा
+              <button type="submit"
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3.5 rounded-2xl cursor-pointer text-sm shadow-md transition-all active:scale-95">
+                🚀 जाहिरात प्रकाशित करा
               </button>
             </form>
           ) : (
