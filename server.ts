@@ -781,26 +781,21 @@ const verifyAdminToken = (req: any, res: any, next: any) => {
   }
 };
 
-// Admin Login - Secure Registered Mobile & OTP Authentication
+// Admin Login - Username + Password (no OTP)
 app.post("/api/admin/login", (req, res) => {
-  const { mobile, otp } = req.body;
-  
-  if (!mobile || !otp) {
-    return res.status(400).json({ error: "मोबाईल नंबर आणि ओटीपी आवश्यक आहेत." });
+  const { username, password } = req.body;
+
+  const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "rahul_admin";
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Sairam@2026";
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "युजरनेम आणि पासवर्ड आवश्यक आहे!" });
   }
 
-  if (mobile !== "9011083440") {
-    return res.status(400).json({ error: "हा मोबाईल नंबर अधिकृत ॲडमीन म्हणून नोंदणीकृत नाही!" });
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "चुकीचा युजरनेम किंवा पासवर्ड!" });
   }
 
-  // Verify against generated random OTP strictly (no hardcoded bypass codes to prevent scams)
-  const expectedAdminOtp = activeOTPs["9011083440"];
-  if (expectedAdminOtp !== otp) {
-    return res.status(400).json({ error: "चुकीचा ॲडमीन सुरक्षा ओटीपी! कृपया पुन्हा प्रयत्न करा." });
-  }
-
-  // Log in successfully
-  delete activeOTPs["9011083440"];
   res.json({ success: true, token: "SairamAdmin@9011" });
 });
 
