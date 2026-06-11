@@ -39,10 +39,7 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
   const [jobAgeLimit, setJobAgeLimit] = useState("");
   const [jobPostsList, setJobPostsList] = useState("");
   const [jobDesc, setJobDesc] = useState("");
-  const [jobDocs, setJobDocs] = useState("आधार कार्ड
-१० वी गुणपत्रिका
-१२ वी गुणपत्रिका
-फोटो & सही");
+  const [jobDocs, setJobDocs] = useState("आधार कार्ड\n१० वी गुणपत्रिका\n१२ वी गुणपत्रिका\nफोटो & सही");
 
   // New announcement states
   const [newAnnText, setNewAnnText] = useState("");
