@@ -970,8 +970,7 @@ export default function AdminPanel({ adminToken, applications, jobs, announcemen
                 <div>
                   <label className="text-[10px] font-black text-gray-600 block mb-1">📋 पदे आणि जागा (प्रत्येक ओळीत: पदनाव:जागासंख्या) *</label>
                   <textarea value={jobPostsList} onChange={(e) => setJobPostsList(e.target.value)}
-                    placeholder={"तलाठी (गट-क):4644
-तलाठी (महिला राखीव):500"}
+                    placeholder="तलाठी (गट-क):4644 | तलाठी (महिला राखीव):500"
                     rows={3} className="w-full text-xs font-bold p-2.5 border border-emerald-200 rounded-xl outline-none focus:border-emerald-500 resize-none" required />
                   <p className="text-[9px] text-gray-400 mt-1">फॉरमॅट: पदनाव:जागासंख्या — प्रत्येक पद नवीन ओळीत</p>
                 </div>
