@@ -4,13 +4,13 @@
   "description": "सर्व शासकीय ऑनलाईन अर्ज आणि भरती फॉर्म अचूक भरण्यासाठी अधिकृत ऑनलाईन सेवा केंद्र",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
