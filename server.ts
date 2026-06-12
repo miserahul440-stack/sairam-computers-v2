@@ -8,7 +8,21 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+
 const PORT = 3000;
+
+// ── REAL-TIME SSE (Server-Sent Events) ──
+// Clients connect here to get live updates without page refresh
+const sseClients: Set<any> = new Set();
+
+function broadcastUpdate(type: string, data: any) {
+  const message = `data: ${JSON.stringify({ type, data, ts: Date.now() })}
+
+`;
+  sseClients.forEach(client => {
+    try { client.write(message); } catch(e) { sseClients.delete(client); }
+  });
+}
 
 // Maximum payload size for JSON to support base64 file transfers smoothly
 app.use(express.json({ limit: "50mb" }));
@@ -487,6 +501,34 @@ app.post("/api/auth/forgot-step2", (req, res) => {
 });
 
 
+// ── SSE ENDPOINT — Real-time updates ──
+app.get("/api/events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.flushHeaders();
+
+  // Send initial ping
+  res.write(`data: ${JSON.stringify({ type: "connected", ts: Date.now() })}
+
+`);
+
+  sseClients.add(res);
+
+  // Heartbeat every 25s to prevent timeout
+  const heartbeat = setInterval(() => {
+    try { res.write(": heartbeat
+
+"); } catch(e) { clearInterval(heartbeat); }
+  }, 25000);
+
+  req.on("close", () => {
+    sseClients.delete(res);
+    clearInterval(heartbeat);
+  });
+});
+
 // Get profile
 app.get("/api/auth/me", (req, res) => {
   const authHeader = req.headers.authorization;
@@ -854,7 +896,10 @@ app.put("/api/admin/applications/:id", verifyAdminToken, (req, res) => {
   db.applications[appIndex].updatedAt = new Date().toISOString();
   writeDb(db);
 
-  res.json({ success: true, application: db.applications[appIndex] });
+  const updatedApp = db.applications[appIndex];
+  broadcastUpdate("app_status", { appId: updatedApp.id, userId: updatedApp.userId, status: updatedApp.status, paymentStatus: updatedApp.paymentStatus, title: updatedApp.formTitle });
+
+  res.json({ success: true, application: updatedApp });
 });
 
 // Admin Add customized Job post
@@ -883,6 +928,7 @@ app.post("/api/admin/jobs", verifyAdminToken, (req, res) => {
 
   db.jobs.unshift(newJob);
   writeDb(db);
+  broadcastUpdate("new_job", { id: newJob.id, title: newJob.titleMR, vacancies: newJob.totalVacancies, dept: newJob.departmentMR });
   res.json({ success: true, job: newJob });
 });
 
@@ -923,9 +969,25 @@ app.delete("/api/admin/announcements/:id", verifyAdminToken, (req, res) => {
 // SMART AI DOCUMENT OCR ANALYZER (Server-side Gemini Integration!)
 // ----------------------------------------------------
 app.post("/api/admin/ocr-analyze", verifyAdminToken, async (req, res) => {
+  // OCR using Gemini if API key available
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(200).json({ 
+      error: null,
+      note: "GEMINI_API_KEY set केली नाही — OCR बंद आहे.",
+      documentType: "Unknown",
+      nameEN: "",
+      nameMR: "",
+      dob: "",
+      idNumber: ""
+    });
+  }
   const { fileUrl } = req.body;
   if (!fileUrl) {
     return res.status(400).json({ error: "फाइल यूआरएल मिळालेली नाही." });
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(503).json({ error: "GEMINI_API_KEY सेट केलेली नाही. Render Environment Variables मध्ये GEMINI_API_KEY add करा." });
   }
 
   try {
