@@ -1,17 +1,19 @@
 {
-  "short_name": "Sairam App",
-  "name": "Sairam Computers - Sairam Online Mobile App",
-  "description": "सर्व शासकीय ऑनलाईन अर्ज आणि भरती फॉर्म अचूक भरण्यासाठी अधिकृत ऑनलाईन सेवा केंद्र (संचालक: राहुल मिसे)",
+  "short_name": "साईराम",
+  "name": "साईराम कॉम्प्युटर - आपली डिजिटल सेवा",
+  "description": "सर्व शासकीय ऑनलाईन अर्ज आणि भरती फॉर्म अचूक भरण्यासाठी अधिकृत ऑनलाईन सेवा केंद्र",
   "icons": [
     {
-      "src": "https://img.icons8.com/isometric/512/computer.png",
+      "src": "/icons/icon-192.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://img.icons8.com/isometric/512/computer.png",
+      "src": "/icons/icon-512.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
