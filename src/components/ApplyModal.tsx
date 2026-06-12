@@ -212,7 +212,7 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
     }
   };
 
-  const upiUrl = `upi://pay?pa=9011083440@okaxis&pn=Rahul%20Mise&am=${totalAmount}&tn=Sairam%20Computes%20-$${itemTitle.substring(0,10)}`;
+  const upiUrl = `upi://pay?pa=miserahul440-1@okaxis&pn=Rahul%20Mise&am=${totalAmount}&tn=Sairam%20Computes%20-$${itemTitle.substring(0,10)}`;
   const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
   return (
@@ -345,7 +345,7 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
                   referrerPolicy="no-referrer"
                 />
                 <span className="text-[9px] text-gray-400 font-bold block mt-1.5 font-mono">
-                  UPI ID: 9011083440@okaxis
+                  UPI ID: miserahul440-1@okaxis
                 </span>
                 <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-black px-2 py-0.5 rounded-full mt-1 inline-block">
                   {t.scanToPay}
