@@ -518,9 +518,7 @@ app.get("/api/events", (req, res) => {
 
   // Heartbeat every 25s to prevent timeout
   const heartbeat = setInterval(() => {
-    try { res.write(": heartbeat
-
-"); } catch(e) { clearInterval(heartbeat); }
+    try { res.write(": heartbeat\n\n"); } catch(e) { clearInterval(heartbeat); }
   }, 25000);
 
   req.on("close", () => {
