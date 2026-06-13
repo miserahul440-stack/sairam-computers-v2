@@ -502,6 +502,17 @@ app.post("/api/auth/forgot-step2", (req, res) => {
 
 
 // ── SSE ENDPOINT — Real-time updates ──
+
+// FCM token registration  
+app.post("/api/fcm/register", (req, res) => {
+  const { token } = req.body;
+  if (token && !fcmTokens.includes(token)) {
+    fcmTokens.push(token);
+    if (fcmTokens.length > 10000) fcmTokens = fcmTokens.slice(-10000);
+  }
+  res.json({ success: true });
+});
+
 app.get("/api/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -895,6 +906,16 @@ app.put("/api/admin/applications/:id", verifyAdminToken, (req, res) => {
   writeDb(db);
 
   const updatedApp = db.applications[appIndex];
+  // Send push to specific user
+  const updatedApp2 = db.applications[appIndex];
+  const appUser = db.users?.find((u: any) => u.id === updatedApp2?.userId);
+  if (appUser) {
+    sendPushNotification(
+      `✅ अर्ज अपडेट: ${updatedApp2.formTitle}`,
+      `स्टेटस: ${status} | पेमेंट: ${paymentStatus}`,
+      { type: "app_update", appId: updatedApp2.id }
+    );
+  }
   broadcastUpdate("app_status", { appId: updatedApp.id, userId: updatedApp.userId, status: updatedApp.status, paymentStatus: updatedApp.paymentStatus, title: updatedApp.formTitle });
 
   res.json({ success: true, application: updatedApp });
@@ -927,6 +948,12 @@ app.post("/api/admin/jobs", verifyAdminToken, (req, res) => {
   db.jobs.unshift(newJob);
   writeDb(db);
   broadcastUpdate("new_job", { id: newJob.id, title: newJob.titleMR, vacancies: newJob.totalVacancies, dept: newJob.departmentMR });
+  // Send push notification to all users
+  sendPushNotification(
+    `🚨 नवीन भरती: ${newJob.titleMR}`,
+    `${newJob.departmentMR} — ${newJob.totalVacancies} जागा | शेवटची तारीख: ${newJob.lastDate}`,
+    { type: "new_job", jobId: newJob.id, title: newJob.titleMR }
+  );
   res.json({ success: true, job: newJob });
 });
 
