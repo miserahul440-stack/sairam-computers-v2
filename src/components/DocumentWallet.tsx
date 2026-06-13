@@ -9,7 +9,7 @@ interface DocumentWalletProps {
 }
 
 interface DocConfig {
-  type: "aadhar" | "pan" | "marksheet" | "photo" | "signature" | "income";
+  type: "aadhar" | "pan" | "marksheet10" | "marksheet12" | "graduation" | "photo" | "signature" | "income" | "caste" | "domicile" | "birth" | "disability" | "exservice" | "ncc" | "experience";
   label: string;
   description: string;
 }
@@ -21,12 +21,25 @@ export default function DocumentWallet({ user, token, onUpdateUser }: DocumentWa
   const [consentChecked, setConsentChecked] = useState(false);
 
   const documentConfigs: DocConfig[] = [
-    { type: "aadhar", label: "आधार कार्ड (Aadhar Card)", description: "पहिला व दुसरा भाग सामावून स्पष्ट असावा (PDF / JPG)" },
-    { type: "pan", label: "पॅन कार्ड (PAN Card)", description: "पॅन कार्ड वरील नाव व जन्मतारीख स्पष्ट दिसायला हवी" },
-    { type: "marksheet", label: "१०वी किंवा १२वी गुणपत्रिका", description: "गुणपत्रिका / बोर्ड सर्टिफिकेट जोडणे अनिवार्य आहे" },
-    { type: "income", label: "उत्पन्नाचा दाखला (Income Certificate)", description: "तहसीलदार किंवा शासकीय अधिकृत दाखला (नवीन ३ वर्षाचे)" },
-    { type: "photo", label: "पासपोर्ट आकाराचा फोटो (Photo)", description: "बॅकग्राऊंड शक्यतो पांढरा असावा, चेहरा स्पष्ट असावा" },
-    { type: "signature", label: "स्वतःची सही / स्वाक्षरी (Signature)", description: "पांढऱ्या कागदावर काळ्या किंवा निळ्या पेनने घेतलेला सहीचा फोटो" },
+    // ओळख पुरावे
+    { type: "aadhar", label: "🪪 आधार कार्ड", description: "पुढचा व मागचा भाग स्पष्ट असावा (PDF / JPG)" },
+    { type: "pan", label: "💳 पॅन कार्ड", description: "नाव व जन्मतारीख स्पष्ट दिसायला हवी" },
+    // शैक्षणिक
+    { type: "marksheet10", label: "📄 १०वी गुणपत्रिका", description: "SSC बोर्ड गुणपत्रिका / प्रमाणपत्र" },
+    { type: "marksheet12", label: "📄 १२वी गुणपत्रिका", description: "HSC बोर्ड गुणपत्रिका / प्रमाणपत्र" },
+    { type: "graduation", label: "🎓 पदवी प्रमाणपत्र", description: "Degree Certificate / Marksheet" },
+    // दाखले
+    { type: "income", label: "📋 उत्पन्नाचा दाखला", description: "तहसीलदार अधिकृत दाखला (३ वर्षाचे)" },
+    { type: "caste", label: "📋 जातीचा दाखला", description: "जात प्रमाणपत्र / Caste Certificate" },
+    { type: "domicile", label: "📋 अधिवास प्रमाणपत्र", description: "Domicile / Nationality Certificate" },
+    { type: "birth", label: "📋 जन्म दाखला", description: "Birth Certificate / जन्म नोंद" },
+    { type: "disability", label: "♿ अपंगत्व प्रमाणपत्र", description: "Disability Certificate (लागू असल्यास)" },
+    { type: "exservice", label: "🎖️ माजी सैनिक प्रमाणपत्र", description: "Ex-Serviceman Certificate (लागू असल्यास)" },
+    { type: "ncc", label: "🏅 NCC प्रमाणपत्र", description: "NCC A/B/C Certificate (लागू असल्यास)" },
+    { type: "experience", label: "💼 अनुभव प्रमाणपत्र", description: "Experience Letter / Service Certificate" },
+    // फोटो
+    { type: "photo", label: "📸 पासपोर्ट फोटो", description: "पांढरा बॅकग्राऊंड, चेहरा स्पष्ट असावा" },
+    { type: "signature", label: "✍️ स्वाक्षरी", description: "पांढऱ्या कागदावर काळ्या/निळ्या पेनने" },
   ];
 
   // Calculate loaded docs count

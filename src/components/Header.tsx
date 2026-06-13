@@ -229,7 +229,7 @@ export default function Header({
         </div>
 
         {/* Localized Navigation Tabs */}
-        <nav className="flex items-center justify-start overflow-x-auto gap-2 mt-5 py-1 border-t border-rose-50 pt-4 scrollbar-none">
+        <nav className="flex items-center justify-center overflow-x-auto gap-2 mt-5 py-1 border-t border-rose-50 pt-4 scrollbar-none">
           <button
             onClick={() => setActiveTab("home")}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${

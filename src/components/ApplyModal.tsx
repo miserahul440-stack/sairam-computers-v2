@@ -112,6 +112,23 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
   const [customFields, setCustomFields] = useState<{ [key: string]: string }>({});
   const [payLater, setPayLater] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [inlineUploads, setInlineUploads] = useState<Record<string, string>>({});
+
+  const handleInlineDocUpload = async (docType: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      setInlineUploads(prev => ({ ...prev, [docType]: base64 }));
+      try {
+        await fetch("/api/user/upload-document", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token || ""}` },
+          body: JSON.stringify({ documentType: docType, base64Data: base64, fileName: file.name }),
+        });
+      } catch(e) {}
+    };
+    reader.readAsDataURL(file);
+  };
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [formConsent, setFormConsent] = useState(false);
@@ -259,18 +276,22 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
                 return (
                   <div key={docType} className="flex items-center justify-between text-xs font-bold">
                     <span className="text-gray-600 font-semibold">{getDocLabel(docType)}</span>
-                    {isUploaded ? (
-                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{t.docAvailableWallet}</span>
+                    {isUploaded || inlineUploads[docType] ? (
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✅ उपलब्ध</span>
                     ) : (
-                      <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 animate-pulse">{t.docMissingWallet}</span>
+                      <label className="cursor-pointer">
+                        <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-[10px] font-bold">📤 आत्ता Upload करा</span>
+                        <input type="file" accept="image/*,application/pdf" className="hidden"
+                          onChange={(e) => { if(e.target.files?.[0]) handleInlineDocUpload(docType, e.target.files[0]); }} />
+                      </label>
                     )}
                   </div>
                 );
               })}
             </div>
-            {missingDocs.length > 0 && (
-              <span className="text-[10px] text-rose-600 font-extrabold mt-3 block">
-                {t.backToUploadWarn}
+            {missingDocs.filter(d => !inlineUploads[d]).length > 0 && (
+              <span className="text-[10px] text-amber-600 font-bold mt-3 block">
+                ⚠️ वरील कागदपत्रे "📤 आत्ता Upload करा" वर click करून upload करा — Wallet मध्ये पण save होतील!
               </span>
             )}
           </div>
