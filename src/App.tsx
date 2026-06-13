@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useFirebaseNotifications } from "./hooks/useFirebaseNotifications";
 import { motion, AnimatePresence } from "motion/react";
 import Header from "./components/Header";
 import NewsTicker from "./components/NewsTicker";
@@ -140,6 +141,9 @@ export default function App() {
   const [selectedServiceToApply, setSelectedServiceToApply] = useState<any>(null);
   const [selectedJobToApply, setSelectedJobToApply] = useState<JobPost | null>(null);
 
+  // Real-time notification popup
+  const [realtimePopup, setRealtimePopup] = useState<{title: string; body: string; type: string} | null>(null);
+
   // Automatically reset selected category and scroll smoothly to top when tab changes
   useEffect(() => {
     setSelectedCategory(null);
@@ -185,6 +189,75 @@ export default function App() {
 
     fetchJobs();
     fetchAnnouncements();
+
+  // Firebase Push Notifications
+  useFirebaseNotifications(
+    (data) => { fetchJobs(); setRealtimePopup({ type: "job", title: "🚨 नवीन भरती!", body: data.title || "नवीन जागा निघाली!" }); setTimeout(() => setRealtimePopup(null), 6000); },
+    (data) => { setRealtimePopup({ type: "update", title: "✅ अर्ज अपडेट!", body: "तुमच्या अर्जाचा स्टेटस बदलला" }); setTimeout(() => setRealtimePopup(null), 6000); }
+  );
+
+
+
+    // ── REAL-TIME SSE CONNECTION ──
+    const connectSSE = () => {
+      const es = new EventSource("/api/events");
+
+      es.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+
+          if (msg.type === "new_job") {
+            fetchJobs(); // Refresh jobs list instantly
+            fetchAnnouncements();
+            // Show popup
+            setRealtimePopup({
+              type: "job",
+              title: "🚨 नवीन भरती जाहीर!",
+              body: `${msg.data.title} — ${msg.data.vacancies} जागा`
+            });
+            // Browser notification
+            if (Notification.permission === "granted") {
+              new Notification("🚨 नवीन भरती जाहीर!", {
+                body: `${msg.data.title} — ${msg.data.vacancies} जागा`,
+                icon: "/icons/icon-192.png"
+              });
+            }
+            setTimeout(() => setRealtimePopup(null), 6000);
+          }
+
+          if (msg.type === "app_status") {
+            fetchMyApplications();
+            setRealtimePopup({
+              type: "status",
+              title: "✅ अर्जाची स्थिती अपडेट झाली!",
+              body: `${msg.data.title || "अर्ज"} — ${msg.data.status}`
+            });
+            if (Notification.permission === "granted") {
+              new Notification("✅ अर्जाची स्थिती बदलली!", {
+                body: `${msg.data.title || "अर्ज"} — ${msg.data.status}`,
+                icon: "/icons/icon-192.png"
+              });
+            }
+            setTimeout(() => setRealtimePopup(null), 6000);
+          }
+        } catch(err) {}
+      };
+
+      es.onerror = () => {
+        es.close();
+        setTimeout(connectSSE, 5000); // Reconnect after 5s
+      };
+
+      return es;
+    };
+
+    // Request browser notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const es = connectSSE();
+    return () => es.close();
   }, []);
 
   // Fetch applications if user session is active
@@ -352,7 +425,21 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
-      
+
+      {/* ── REAL-TIME NOTIFICATION POPUP ── */}
+      {realtimePopup && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] w-[92vw] max-w-sm animate-bounce-in">
+          <div className={`rounded-2xl shadow-2xl p-4 border-2 flex items-start gap-3 ${realtimePopup.type === "job" ? "bg-rose-600 border-rose-400 text-white" : "bg-emerald-600 border-emerald-400 text-white"}`}>
+            <span className="text-2xl">{realtimePopup.type === "job" ? "🚨" : "✅"}</span>
+            <div className="flex-1">
+              <p className="font-black text-sm">{realtimePopup.title}</p>
+              <p className="text-xs font-bold opacity-90 mt-0.5">{realtimePopup.body}</p>
+            </div>
+            <button onClick={() => setRealtimePopup(null)} className="text-white/70 hover:text-white font-black text-lg leading-none cursor-pointer">×</button>
+          </div>
+        </div>
+      )}
+
       {/* 1. Header Layout */}
       <Header
         user={user}
