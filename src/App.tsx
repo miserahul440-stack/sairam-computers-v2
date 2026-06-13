@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useFirebaseNotifications } from "./hooks/useFirebaseNotifications";
 import { motion, AnimatePresence } from "motion/react";
 import Header from "./components/Header";
 import NewsTicker from "./components/NewsTicker";
@@ -190,11 +189,7 @@ export default function App() {
     fetchJobs();
     fetchAnnouncements();
 
-  // Firebase Push Notifications
-  useFirebaseNotifications(
-    (data) => { fetchJobs(); setRealtimePopup({ type: "job", title: "🚨 नवीन भरती!", body: data.title || "नवीन जागा निघाली!" }); setTimeout(() => setRealtimePopup(null), 6000); },
-    (data) => { setRealtimePopup({ type: "update", title: "✅ अर्ज अपडेट!", body: "तुमच्या अर्जाचा स्टेटस बदलला" }); setTimeout(() => setRealtimePopup(null), 6000); }
-  );
+  // Firebase notifications - setup via service worker
 
 
 
