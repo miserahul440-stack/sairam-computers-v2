@@ -10,7 +10,6 @@ import AdminPanel from "./components/AdminPanel";
 import LoginModal from "./components/LoginModal";
 import ApplyModal from "./components/ApplyModal";
 import AppInstallPrompt from "./components/AppInstallPrompt";
-import JobAlertSubscription from "./components/JobAlertSubscription";
 import CategoryBentoBlocks from "./components/CategoryBentoBlocks";
 import { UserProfile, JobPost, Announcement, FormApplication } from "./types";
 import { Phone, Mail, HelpCircle, ShieldAlert, Cpu, Sparkles, CheckCircle, Smartphone, User, ShieldCheck } from "lucide-react";
@@ -188,6 +187,73 @@ export default function App() {
 
     fetchJobs();
     fetchAnnouncements();
+
+  // Firebase Push Notifications - App बंद असतानाही येतात
+  useEffect(() => {
+    const setupFirebasePush = async () => {
+      try {
+        if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+        
+        // Register Firebase SW
+        const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+        
+        // Ask permission
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") return;
+
+        // Dynamic import to avoid build errors
+        const { initializeApp, getApps } = await import("firebase/app");
+        const { getMessaging, getToken, onMessage } = await import("firebase/messaging");
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
+          authDomain: "sairamcomputerapp.firebaseapp.com",
+          projectId: "sairamcomputerapp",
+          storageBucket: "sairamcomputerapp.firebasestorage.app",
+          messagingSenderId: "197160044288",
+          appId: "1:197160044288:web:91389a83c0850481df95e5",
+        };
+
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const messaging = getMessaging(app);
+
+        // Get FCM token and save to server
+        const token = await getToken(messaging, {
+          vapidKey: "BFaAeH3Bg2rTXhwC2yiTLx6z49fbdMxlphRsWD3-wwFzAwrVnt-YOJ6D8_zaTl86r48erL1xTjQilNf1dlnAU",
+          serviceWorkerRegistration: reg,
+        });
+
+        if (token) {
+          fetch("/api/fcm/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          }).catch(() => {});
+        }
+
+        // Foreground message - app उघडा असताना popup दाखवा
+        onMessage(messaging, (payload) => {
+          const title = payload.notification?.title || "साईराम कॉम्प्युटर";
+          const body = payload.notification?.body || "नवीन अपडेट!";
+          const data = payload.data || {};
+          
+          setRealtimePopup({
+            type: data.type === "new_job" ? "job" : "update",
+            title,
+            body,
+          });
+          setTimeout(() => setRealtimePopup(null), 7000);
+          
+          if (data.type === "new_job") fetchJobs();
+        });
+
+      } catch (err) {
+        console.log("Firebase setup:", err);
+      }
+    };
+
+    setupFirebasePush();
+  }, []);
 
   // Firebase notifications - setup via service worker
 
@@ -459,22 +525,6 @@ export default function App() {
 
         {activeTab === "home" && (
           <div className="space-y-8 animate-fade-in animate-duration-300">
-            {/* 1.5 Beautiful Services Bento Menu Block */}
-            <div className="bg-white border border-rose-50 rounded-3xl p-6 md:p-8 shadow-sm">
-              <div className="mb-4">
-                <h3 className="text-lg font-black text-slate-800">{t.bentoHeader}</h3>
-                <p className="text-xs text-rose-850 text-gray-500 font-bold mt-1">
-                  {t.bentoSub}
-                </p>
-              </div>
-              <CategoryBentoBlocks 
-                onSelectCategory={(cat) => {
-                  setActiveTab(cat);
-                }} 
-                lang={lang} 
-              />
-            </div>
-
             {/* 1.6 Latest Updates Section */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6" id="latest-updates-block">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-rose-50 pb-4">
@@ -649,15 +699,23 @@ export default function App() {
               </div>
             </div>
 
-            {/* 2. Free Job Alert subscription at the bottom */}
-            <div className="pt-6 border-t border-slate-205">
-              <JobAlertSubscription
-                lang={lang}
-                userSessionName={user?.name}
-                userSessionMobile={user?.mobile}
-                userSessionEmail={user?.email}
+            {/* 1.5 Beautiful Services Bento Menu Block */}
+            <div className="bg-white border border-rose-50 rounded-3xl p-6 md:p-8 shadow-sm">
+              <div className="mb-4">
+                <h3 className="text-lg font-black text-slate-800">{t.bentoHeader}</h3>
+                <p className="text-xs text-rose-850 text-gray-500 font-bold mt-1">
+                  {t.bentoSub}
+                </p>
+              </div>
+              <CategoryBentoBlocks 
+                onSelectCategory={(cat) => {
+                  setActiveTab(cat);
+                }} 
+                lang={lang} 
               />
             </div>
+
+
           </div>
         )}
 
