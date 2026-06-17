@@ -188,20 +188,15 @@ export default function App() {
     fetchJobs();
     fetchAnnouncements();
 
-  // Firebase Push Notifications - App बंद असतानाही येतात
-  useEffect(() => {
-    const setupFirebasePush = async () => {
+    // Firebase Push Notifications - App बंद असतानाही येतात (separate async function, called once)
+    (async () => {
       try {
         if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
-        
-        // Register Firebase SW
+
         const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-        
-        // Ask permission
         const perm = await Notification.requestPermission();
         if (perm !== "granted") return;
 
-        // Dynamic import to avoid build errors
         const { initializeApp, getApps } = await import("firebase/app");
         const { getMessaging, getToken, onMessage } = await import("firebase/messaging");
 
@@ -214,48 +209,40 @@ export default function App() {
           appId: "1:197160044288:web:91389a83c0850481df95e5",
         };
 
-        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-        const messaging = getMessaging(app);
+        const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const messaging = getMessaging(fbApp);
 
-        // Get FCM token and save to server
-        const token = await getToken(messaging, {
+        const fcmToken = await getToken(messaging, {
           vapidKey: "BFaAeH3Bg2rTXhwC2yiTLx6z49fbdMxlphRsWD3-wwFzAwrVnt-YOJ6D8_zaTl86r48erL1xTjQilNf1dlnAU",
           serviceWorkerRegistration: reg,
         });
 
-        if (token) {
+        if (fcmToken) {
           fetch("/api/fcm/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
+            body: JSON.stringify({ token: fcmToken }),
           }).catch(() => {});
         }
 
-        // Foreground message - app उघडा असताना popup दाखवा
         onMessage(messaging, (payload) => {
           const title = payload.notification?.title || "साईराम कॉम्प्युटर";
           const body = payload.notification?.body || "नवीन अपडेट!";
           const data = payload.data || {};
-          
+
           setRealtimePopup({
             type: data.type === "new_job" ? "job" : "update",
             title,
             body,
           });
           setTimeout(() => setRealtimePopup(null), 7000);
-          
+
           if (data.type === "new_job") fetchJobs();
         });
-
       } catch (err) {
         console.log("Firebase setup:", err);
       }
-    };
-
-    setupFirebasePush();
-  }, []);
-
-  // Firebase notifications - setup via service worker
+    })();
 
 
 
