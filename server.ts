@@ -24,6 +24,16 @@ function broadcastUpdate(type: string, data: any) {
   });
 }
 
+// FCM token storage (push notifications disabled for now - SSE handles real-time updates)
+let fcmTokens: string[] = [];
+
+// Safe no-op: push notifications via Firebase are disabled until properly configured.
+// This prevents server crashes when called; real-time updates work via SSE (broadcastUpdate) instead.
+async function sendPushNotification(title: string, body: string, data: Record<string, string> = {}) {
+  // Intentionally does nothing right now. SSE already broadcasts the update instantly.
+  return;
+}
+
 // Maximum payload size for JSON to support base64 file transfers smoothly
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -923,7 +933,7 @@ app.put("/api/admin/applications/:id", verifyAdminToken, (req, res) => {
 
 // Admin Add customized Job post
 app.post("/api/admin/jobs", verifyAdminToken, (req, res) => {
-  const { titleMR, title, departmentMR, department, totalVacancies, posts, ageLimit, qualification, importantDocuments, feeGeneral, feeReserved, serviceCharge, lastDate, description } = req.body;
+  const { titleMR, title, departmentMR, department, totalVacancies, posts, ageLimit, ageLimitMR, qualification, qualificationMR, importantDocuments, mandatedDocs, feeGeneral, feeReserved, serviceCharge, startDate, lastDate, description, descriptionMR } = req.body;
 
   const db = readDb();
   const newJob = {
@@ -932,16 +942,18 @@ app.post("/api/admin/jobs", verifyAdminToken, (req, res) => {
     title: title || titleMR,
     departmentMR: departmentMR || department,
     department: department || departmentMR,
-    totalVacancies: Number(totalVacancies),
+    totalVacancies: Number(totalVacancies) || 0,
     posts: posts || [],
-    ageLimit: ageLimit || "१८ ते ३८ वर्षे",
-    qualification: qualification || "पदवी उत्तीर्ण",
-    importantDocuments: importantDocuments || [],
+    ageLimit: ageLimitMR || ageLimit || "१८ ते ३८ वर्षे",
+    qualification: qualificationMR || qualification || "पदवी उत्तीर्ण",
+    importantDocuments: mandatedDocs || importantDocuments || [],
+    mandatedDocs: mandatedDocs || importantDocuments || [],
     feeGeneral: Number(feeGeneral) || 0,
     feeReserved: Number(feeReserved) || 0,
     serviceCharge: Number(serviceCharge) || 0,
+    startDate: startDate || "",
     lastDate: lastDate || "२०२६-०८-०१",
-    description: description || "",
+    description: descriptionMR || description || "",
     whatsappMessage: `👮‍♂️ *${titleMR || title}* चालू!\n\n🔹 *एकूण जागा:* ${totalVacancies}\n🔹 *शेवटची तारीख:* ${lastDate}\n\nआपला ऑनलाईन फॉर्म १००% अचूक भरण्यासाठी साईराम कॉम्प्युटरशी संपर्क साधा.\n📞 *संपर्क:* ९०११०८३४४०`
   };
 
