@@ -1,5 +1,7 @@
-// Firebase Push Notification Service Worker
-// File: public/firebase-messaging-sw.js
+// ═══════════════════════════════════════════════════════════════
+// साईराम कॉम्प्युटर - Firebase Push Notification Service Worker
+// App बंद असतानाही notifications येतात
+// ═══════════════════════════════════════════════════════════════
 
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
@@ -15,44 +17,52 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background notification handler
+// App बंद असताना background message handle करतो
 messaging.onBackgroundMessage((payload) => {
-  const { title, body, icon, data } = payload.notification || {};
-  const notifData = payload.data || data || {};
+  console.log('[SW] Background message received:', payload);
 
-  self.registration.showNotification(title || '🚨 साईराम कॉम्प्युटर', {
-    body: body || 'नवीन अपडेट आहे!',
-    icon: icon || '/icon-192.png',
+  const notificationTitle = payload.notification?.title || 'साईराम कॉम्प्युटर';
+  const notificationBody = payload.notification?.body || 'नवीन अपडेट!';
+  const data = payload.data || {};
+
+  // Notification वर click केल्यावर कुठे जायचं ते ठरवतो
+  let clickUrl = '/';
+  if (data.type === 'new_job' && data.jobId) clickUrl = '/?tab=job&jobId=' + data.jobId;
+  else if (data.type === 'new_announcement') clickUrl = '/?tab=home';
+  else if (data.type === 'app_update' && data.appId) clickUrl = '/?tab=history';
+
+  return self.registration.showNotification(notificationTitle, {
+    body: notificationBody,
+    icon: '/icon-192.png',
     badge: '/icon-192.png',
-    tag: notifData.jobId || 'sairam-notif',
+    tag: data.jobId || data.announcementId || data.appId || 'sairam-notif',
     renotify: true,
-    data: notifData,
+    data: { url: clickUrl, ...data },
     actions: [
-      { action: 'open', title: '👁️ पाहा' },
+      { action: 'open', title: '👁️ उघडा' },
       { action: 'close', title: '✕ बंद करा' }
     ]
   });
 });
 
-// Notification click → open app at correct page
+// Notification वर tap → direct redirect
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const data = event.notification.data || {};
-  
-  let url = '/';
-  if (data.jobId) url = `/?tab=jobs&id=${data.jobId}`;
-  else if (data.schemeId) url = `/?tab=schemes&id=${data.schemeId}`;
-  else if (data.serviceId) url = `/?tab=services&id=${data.serviceId}`;
+
+  const clickUrl = event.notification.data?.url || '/';
+  const fullUrl = self.location.origin + clickUrl;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // आधीच app उघडं असेल तर त्याला focus करा आणि navigate करा
       for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.postMessage({ type: 'NAVIGATE', url });
+        if ('focus' in client) {
+          client.postMessage({ type: 'NAVIGATE', url: clickUrl });
           return client.focus();
         }
       }
-      return clients.openWindow(self.location.origin + url);
+      // App बंद असेल तर नवीन window उघडा
+      return clients.openWindow(fullUrl);
     })
   );
 });
