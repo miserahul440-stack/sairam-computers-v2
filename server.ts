@@ -24,14 +24,104 @@ function broadcastUpdate(type: string, data: any) {
   });
 }
 
-// FCM token storage (push notifications disabled for now - SSE handles real-time updates)
-let fcmTokens: string[] = [];
+// FCM device tokens are stored persistently in db.json (see defaultDb.fcmTokens below)
+// so they survive server restarts/sleeps on Render's free tier.
 
-// Safe no-op: push notifications via Firebase are disabled until properly configured.
-// This prevents server crashes when called; real-time updates work via SSE (broadcastUpdate) instead.
+// Lazily-created Google auth client for sending FCM push notifications.
+// Reused across calls so we don't re-authenticate every single time.
+let _fcmAuthClient: any = null;
+let _fcmProjectId: string | null = null;
+
+async function getFcmAuthClient() {
+  if (_fcmAuthClient) return { client: _fcmAuthClient, projectId: _fcmProjectId };
+
+  const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!rawKey) return null;
+
+  try {
+    const { GoogleAuth } = await import("google-auth-library");
+    const serviceAccount = JSON.parse(rawKey);
+    const auth = new GoogleAuth({
+      credentials: serviceAccount,
+      scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
+    });
+    _fcmAuthClient = await auth.getClient();
+    _fcmProjectId = serviceAccount.project_id;
+    return { client: _fcmAuthClient, projectId: _fcmProjectId };
+  } catch (e) {
+    console.log("FCM auth setup failed (push notifications will be skipped):", e);
+    return null;
+  }
+}
+
+// Sends a push notification to every registered device. Designed to NEVER throw —
+// any failure here is logged and swallowed so it can never break job/announcement creation.
 async function sendPushNotification(title: string, body: string, data: Record<string, string> = {}) {
-  // Intentionally does nothing right now. SSE already broadcasts the update instantly.
-  return;
+  const db = readDb();
+  const tokens: string[] = db.fcmTokens || [];
+  if (tokens.length === 0) return;
+
+  try {
+    const authInfo = await getFcmAuthClient();
+    if (!authInfo) return; // Firebase not configured — SSE still handles in-app real-time updates
+
+    const { client, projectId } = authInfo;
+    const accessTokenResponse = await client.getAccessToken();
+    const accessToken = typeof accessTokenResponse === "string" ? accessTokenResponse : accessTokenResponse?.token;
+    if (!accessToken) return;
+
+    const deadTokens: string[] = [];
+
+    await Promise.allSettled(
+      tokens.map(async (deviceToken) => {
+        try {
+          const resp = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                token: deviceToken,
+                notification: { title, body },
+                data,
+                webpush: {
+                  notification: {
+                    title,
+                    body,
+                    icon: "/icon-192.png",
+                    badge: "/icon-192.png",
+                  },
+                  fcm_options: { link: "/" },
+                },
+              },
+            }),
+          });
+
+          if (!resp.ok) {
+            const errText = await resp.text().catch(() => "");
+            // Token is no longer valid (app uninstalled, permission revoked, etc.) — mark for removal
+            if (resp.status === 404 || resp.status === 400) {
+              deadTokens.push(deviceToken);
+            } else {
+              console.log("FCM send failed:", resp.status, errText);
+            }
+          }
+        } catch (e) {
+          // Network or other per-token failure — don't let it affect other tokens
+        }
+      })
+    );
+
+    if (deadTokens.length > 0) {
+      const freshDb = readDb();
+      freshDb.fcmTokens = (freshDb.fcmTokens || []).filter((t: string) => !deadTokens.includes(t));
+      writeDb(freshDb);
+    }
+  } catch (e) {
+    console.log("sendPushNotification error (safely ignored):", e);
+  }
 }
 
 // Maximum payload size for JSON to support base64 file transfers smoothly
@@ -56,6 +146,7 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 
 // Initialize Database structure if not existing
 const defaultDb = {
+  fcmTokens: [] as string[],
   users: [
     {
       id: "user-demo-1",
@@ -516,9 +607,14 @@ app.post("/api/auth/forgot-step2", (req, res) => {
 // FCM token registration  
 app.post("/api/fcm/register", (req, res) => {
   const { token } = req.body;
-  if (token && !fcmTokens.includes(token)) {
-    fcmTokens.push(token);
-    if (fcmTokens.length > 10000) fcmTokens = fcmTokens.slice(-10000);
+  if (!token) return res.json({ success: true });
+
+  const db = readDb();
+  if (!db.fcmTokens) db.fcmTokens = [];
+  if (!db.fcmTokens.includes(token)) {
+    db.fcmTokens.push(token);
+    if (db.fcmTokens.length > 10000) db.fcmTokens = db.fcmTokens.slice(-10000);
+    writeDb(db);
   }
   res.json({ success: true });
 });
@@ -622,6 +718,10 @@ app.post("/api/wallet/upload", (req, res) => {
     return res.status(404).json({ error: "वापरकर्ता सापडला नाही." });
   }
 
+  if (!db.users[userIndex].documents) {
+    db.users[userIndex].documents = {};
+  }
+
   // Save base64 data to actual storage
   const extension = path.extname(fileName) || ".png";
   const uniqueName = `doc-${userId}-${fileType}-${Date.now()}${extension}`;
@@ -640,7 +740,8 @@ app.post("/api/wallet/upload", (req, res) => {
     db.users[userIndex].documents[nameKey] = fileName;
 
     writeDb(db);
-    res.json({ success: true, user: db.users[userIndex] });
+    const { password: _pw, securityAnswer: _sa, ...safeUser } = db.users[userIndex];
+    res.json({ success: true, user: safeUser });
   } catch (err) {
     console.error("Error saving document wallet", err);
     res.status(500).json({ error: "फाइल सेव्ह करताना तांत्रिक अडचण आली." });
@@ -657,6 +758,9 @@ app.post("/api/wallet/delete", (req, res) => {
   const userId = token.replace("token-", "");
 
   const { fileType } = req.body;
+  if (!fileType) {
+    return res.status(400).json({ error: "कोणतेही कागदपत्र निवडलेले नाही." });
+  }
 
   const db = readDb();
   const userIndex = db.users.findIndex((u: any) => u.id === userId);
@@ -665,14 +769,31 @@ app.post("/api/wallet/delete", (req, res) => {
     return res.status(404).json({ error: "वापरकर्ता सापडला नाही." });
   }
 
+  // Defensive: older accounts may not have a documents object yet
+  if (!db.users[userIndex].documents) {
+    db.users[userIndex].documents = {};
+  }
+
   const urlKey = `${fileType}Url`;
   const nameKey = `${fileType}Name`;
+  const oldUrl = db.users[userIndex].documents[urlKey];
 
   db.users[userIndex].documents[urlKey] = "";
   db.users[userIndex].documents[nameKey] = "";
 
+  // Also remove the physical file from disk if it exists
+  if (oldUrl && typeof oldUrl === "string" && oldUrl.startsWith("/uploads/")) {
+    try {
+      const physicalPath = path.join(UPLOAD_DIR, path.basename(oldUrl));
+      if (fs.existsSync(physicalPath)) fs.unlinkSync(physicalPath);
+    } catch (e) {
+      // Non-fatal: even if disk cleanup fails, the wallet entry is already cleared above
+    }
+  }
+
   writeDb(db);
-  res.json({ success: true, user: db.users[userIndex] });
+  const { password: _pw, securityAnswer: _sa, ...safeUser } = db.users[userIndex];
+  res.json({ success: true, user: safeUser });
 });
 
 // Apply For a Service Form
@@ -990,6 +1111,12 @@ app.post("/api/admin/announcements", verifyAdminToken, (req, res) => {
   };
   db.announcements.unshift(newAnn);
   writeDb(db);
+  broadcastUpdate("new_announcement", { id: newAnn.id, title: newAnn.title, type: newAnn.type });
+  sendPushNotification(
+    "📢 नवीन घोषणा - साईराम कॉम्प्युटर",
+    newAnn.title,
+    { type: "new_announcement", announcementId: newAnn.id }
+  );
   res.json({ success: true, announcement: newAnn });
 });
 
