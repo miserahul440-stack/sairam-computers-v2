@@ -92,8 +92,17 @@ async function sendPushNotification(title: string, body: string, data: Record<st
                     body,
                     icon: "/icon-192.png",
                     badge: "/icon-192.png",
+                    click_action: "https://sairam-computers-v2.vercel.app",
                   },
-                  fcm_options: { link: "/" },
+                  fcm_options: {
+                    link: data.jobId
+                      ? `https://sairam-computers-v2.vercel.app/?tab=job&jobId=${data.jobId}`
+                      : data.announcementId
+                      ? `https://sairam-computers-v2.vercel.app/?tab=home`
+                      : data.appId
+                      ? `https://sairam-computers-v2.vercel.app/?tab=history`
+                      : "https://sairam-computers-v2.vercel.app/",
+                  },
                 },
               },
             }),
