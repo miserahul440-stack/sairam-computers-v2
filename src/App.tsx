@@ -185,7 +185,23 @@ export default function App() {
       setIsAdminLoggedIn(true);
     }
 
-    fetchJobs();
+    // ── NAVIGATE from Push Notification tap ──
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'NAVIGATE') {
+        const url = event.data.url || '/';
+        const params = new URLSearchParams(url.split('?')[1] || '');
+        const tab = params.get('tab');
+        const jobId = params.get('jobId');
+        if (tab) setActiveTab(tab);
+        if (jobId) {
+          // Find and open the job
+          fetchJobs().then?.(() => {});
+        }
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+
+        fetchJobs();
     fetchAnnouncements();
 
     // ── PUSH NOTIFICATIONS (work even when app/site is fully closed) ──
@@ -203,7 +219,7 @@ export default function App() {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
 
-        const reg = await navigator.serviceWorker.register("/push-sw.js");
+        const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
 
         // Dynamic import: only loaded when actually needed, never bundled
