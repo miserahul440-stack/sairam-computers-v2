@@ -188,6 +188,59 @@ export default function App() {
     fetchJobs();
     fetchAnnouncements();
 
+    // ── PUSH NOTIFICATIONS (work even when app/site is fully closed) ──
+    // Uses Firebase Cloud Messaging to match the server-side sender.
+    // Kept fully isolated in its own try-catch IIFE so any failure here
+    // (e.g. browser doesn't support it, permission denied, network issue)
+    // can NEVER affect the rest of the app — SSE and job-fetching below
+    // run independently regardless of what happens here.
+    (async () => {
+      try {
+        if (!("serviceWorker" in navigator) || !("Notification" in window)) {
+          return; // Browser doesn't support this — SSE still works while the app is open
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+
+        const reg = await navigator.serviceWorker.register("/push-sw.js");
+        await navigator.serviceWorker.ready;
+
+        // Dynamic import: only loaded when actually needed, never bundled
+        // into the main app chunk, so it cannot break the initial page load.
+        const { initializeApp, getApps } = await import("firebase/app");
+        const { getMessaging, getToken } = await import("firebase/messaging");
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
+          authDomain: "sairamcomputerapp.firebaseapp.com",
+          projectId: "sairamcomputerapp",
+          storageBucket: "sairamcomputerapp.firebasestorage.app",
+          messagingSenderId: "197160044288",
+          appId: "1:197160044288:web:91389a83c0850481df95e5",
+        };
+
+        const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const messaging = getMessaging(fbApp);
+
+        const fcmToken = await getToken(messaging, {
+          vapidKey: "BFaAeH3Bg2rTXhwC2yiTLx6z49fbdMxlphRsWD3-wwFzAwrVnt-YOJ6D8_zaTl86r48erL1xTjQilNf1dlnAU",
+          serviceWorkerRegistration: reg,
+        });
+
+        if (fcmToken) {
+          await fetch("/api/fcm/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: fcmToken }),
+          }).catch(() => {});
+        }
+      } catch (err) {
+        // Never let a push-setup failure affect the rest of the app
+        console.log("Push notification setup skipped:", err);
+      }
+    })();
+
     // ── REAL-TIME SSE CONNECTION ──
     const connectSSE = () => {
       const es = new EventSource("/api/events");
@@ -225,6 +278,22 @@ export default function App() {
             if (Notification.permission === "granted") {
               new Notification("✅ अर्जाची स्थिती बदलली!", {
                 body: `${msg.data.title || "अर्ज"} — ${msg.data.status}`,
+                icon: "/icon-192.png"
+              });
+            }
+            setTimeout(() => setRealtimePopup(null), 6000);
+          }
+
+          if (msg.type === "new_announcement") {
+            fetchAnnouncements();
+            setRealtimePopup({
+              type: "announcement",
+              title: "📢 नवीन घोषणा!",
+              body: msg.data.title
+            });
+            if (Notification.permission === "granted") {
+              new Notification("📢 नवीन घोषणा!", {
+                body: msg.data.title,
                 icon: "/icon-192.png"
               });
             }
@@ -419,8 +488,8 @@ export default function App() {
       {/* ── REAL-TIME NOTIFICATION POPUP ── */}
       {realtimePopup && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] w-[92vw] max-w-sm animate-bounce-in">
-          <div className={`rounded-2xl shadow-2xl p-4 border-2 flex items-start gap-3 ${realtimePopup.type === "job" ? "bg-rose-600 border-rose-400 text-white" : "bg-emerald-600 border-emerald-400 text-white"}`}>
-            <span className="text-2xl">{realtimePopup.type === "job" ? "🚨" : "✅"}</span>
+          <div className={`rounded-2xl shadow-2xl p-4 border-2 flex items-start gap-3 ${realtimePopup.type === "job" ? "bg-rose-600 border-rose-400 text-white" : realtimePopup.type === "announcement" ? "bg-amber-600 border-amber-400 text-white" : "bg-emerald-600 border-emerald-400 text-white"}`}>
+            <span className="text-2xl">{realtimePopup.type === "job" ? "🚨" : realtimePopup.type === "announcement" ? "📢" : "✅"}</span>
             <div className="flex-1">
               <p className="font-black text-sm">{realtimePopup.title}</p>
               <p className="text-xs font-bold opacity-90 mt-0.5">{realtimePopup.body}</p>
@@ -489,10 +558,14 @@ export default function App() {
                       jobs.slice(0, 3).map((job) => {
                         const displayedTitle = lang === "mr" && job.titleMR ? job.titleMR : lang === "hi" && job.titleHI ? job.titleHI : job.title;
                         const displayedDept = lang === "mr" && job.departmentMR ? job.departmentMR : lang === "hi" && job.departmentHI ? job.departmentHI : job.department;
+                        const displayedQual = lang === "mr" && job.qualificationMR ? job.qualificationMR : lang === "hi" && job.qualificationHI ? job.qualificationHI : job.qualification;
+                        const displayedAge = lang === "mr" && job.ageLimitMR ? job.ageLimitMR : lang === "hi" && job.ageLimitHI ? job.ageLimitHI : job.ageLimit;
+                        const displayedDocs: string[] = (lang === "mr" && job.mandatedDocs ? job.mandatedDocs : job.mandatedDocs || job.importantDocuments) || [];
+                        const displayedPosts = job.posts || [];
                         return (
-                          <div 
+                          <div
                             key={job.id}
-                            className="bg-white border border-slate-200 hover:border-amber-400 rounded-2xl p-4 transition-all duration-305 hover:shadow-md flex flex-col justify-between h-[155px]"
+                            className="bg-white border border-slate-200 hover:border-amber-400 rounded-2xl p-4 transition-all duration-305 hover:shadow-md flex flex-col gap-2.5"
                           >
                             <div>
                               <div className="flex justify-between items-start gap-2">
@@ -503,18 +576,55 @@ export default function App() {
                                   {lang === "mr" ? "शेवटची तारीख:" : lang === "hi" ? "अंतिम तिथि:" : "Last Date:"} {job.lastDate}
                                 </span>
                               </div>
-                              <h5 className="font-extrabold text-xs md:text-sm text-slate-800 mt-2 line-clamp-1">
+                              <h5 className="font-extrabold text-xs md:text-sm text-slate-800 mt-2">
                                 {displayedTitle}
                               </h5>
-                              <p className="text-[10px] text-gray-400 font-bold line-clamp-1 mt-1">
+                              <p className="text-[10px] text-gray-400 font-bold mt-1">
                                 {displayedDept}
                               </p>
                             </div>
-                            
-                            <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-2">
-                              <span className="text-[10px] font-bold text-slate-400">
-                                💸 {lang === "mr" ? "सर्व्हिस शुल्क:" : lang === "hi" ? "सेवा शुल्क:" : "Service Fee:"} ₹{job.serviceCharge}
-                              </span>
+
+                            {/* Full details right here on the front page */}
+                            <div className="grid grid-cols-1 gap-1.5 text-[10px] font-semibold text-slate-600 border-t border-slate-100 pt-2.5">
+                              {displayedQual && (
+                                <div className="flex items-start gap-1.5">
+                                  <span>🎓</span>
+                                  <span>{displayedQual}</span>
+                                </div>
+                              )}
+                              {displayedAge && (
+                                <div className="flex items-start gap-1.5">
+                                  <span>🎂</span>
+                                  <span>{displayedAge}</span>
+                                </div>
+                              )}
+                              {job.startDate && (
+                                <div className="flex items-start gap-1.5">
+                                  <span>📅</span>
+                                  <span>{lang === "mr" ? "अर्ज सुरुवात:" : "Start:"} {job.startDate}</span>
+                                </div>
+                              )}
+                              {displayedPosts.length > 0 && (
+                                <div className="flex items-start gap-1.5">
+                                  <span>📋</span>
+                                  <span>{displayedPosts.map((p: any) => `${p.nameMR || p.name}: ${p.vacancy}`).join(" | ")}</span>
+                                </div>
+                              )}
+                              {displayedDocs.length > 0 && (
+                                <div className="flex items-start gap-1.5">
+                                  <span>📎</span>
+                                  <span>{displayedDocs.join(", ")}</span>
+                                </div>
+                              )}
+                              <div className="flex items-start gap-1.5">
+                                <span>💰</span>
+                                <span>
+                                  {lang === "mr" ? "खुला" : "Open"}: ₹{job.feeGeneral} | {lang === "mr" ? "मागास" : "Reserved"}: ₹{job.feeReserved} | {lang === "mr" ? "सेवा शुल्क" : "Service Fee"}: ₹{job.serviceCharge}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end border-t border-slate-100 pt-2.5">
                               <button
                                 onClick={() => {
                                   setActiveTab("job");
