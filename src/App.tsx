@@ -204,64 +204,39 @@ export default function App() {
         fetchJobs();
     fetchAnnouncements();
 
-    // ── PUSH NOTIFICATIONS (work even when app/site is fully closed) ──
-    // Uses Firebase Cloud Messaging to match the server-side sender.
-    // Kept fully isolated in its own try-catch IIFE so any failure here
-    // (e.g. browser doesn't support it, permission denied, network issue)
-    // can NEVER affect the rest of the app — SSE and job-fetching below
-    // run independently regardless of what happens here.
+    // ── PUSH NOTIFICATIONS (Web Push API — no Firebase JS SDK needed) ──
     (async () => {
       try {
-        if (!("serviceWorker" in navigator) || !("Notification" in window)) {
-          return; // Browser doesn't support this — SSE still works while the app is open
-        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") return;
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") { console.log("[Push] Permission denied"); return; }
 
         const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
 
-        // Dynamic import: only loaded when actually needed, never bundled
-        // into the main app chunk, so it cannot break the initial page load.
-        const { initializeApp, getApps } = await import("firebase/app");
-        const { getMessaging, getToken } = await import("firebase/messaging");
+        // VAPID key — convert base64url to Uint8Array
+        const VAPID = "BJo-GFKDlgdwHDFqAef6GO14tXfLDHXIJx7vzvimNTdLeH972Si71wCR9GvnkpuThqKw2Qm-adj56OvrkRg15MI";
+        const pad = "=".repeat((4 - VAPID.length % 4) % 4);
+        const b64 = (VAPID + pad).replace(/-/g, "+").replace(/_/g, "/");
+        const raw = window.atob(b64);
+        const vapidKey = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) vapidKey[i] = raw.charCodeAt(i);
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
-          authDomain: "sairamcomputerapp.firebaseapp.com",
-          projectId: "sairamcomputerapp",
-          storageBucket: "sairamcomputerapp.firebasestorage.app",
-          messagingSenderId: "197160044288",
-          appId: "1:197160044288:web:91389a83c0850481df95e5",
-        };
-
-        const fbApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-        const messaging = getMessaging(fbApp);
-
-        const fcmToken = await getToken(messaging, {
-          vapidKey: "BJo-GFKDlgdwHDFqAef6GO14tXfLDHXIJx7vzvimNTdLeH972Si71wCR9GvnkpuThqKw2Qm-adj56OvrkRg15MI",
-          serviceWorkerRegistration: reg,
-        });
-
-        if (fcmToken) {
-          console.log("[FCM] Token obtained, registering with server...");
-          const resp = await fetch("/api/fcm/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: fcmToken }),
-          }).catch(() => null);
-          if (resp?.ok) {
-            console.log("[FCM] Token registered successfully ✅");
-          } else {
-            console.log("[FCM] Token registration failed ❌");
-          }
-        } else {
-          console.log("[FCM] No token received — check Firebase console & browser permissions");
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
         }
+
+        const resp = await fetch("/api/fcm/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: JSON.stringify(sub) }),
+        }).catch(() => null);
+
+        console.log("[Push]", resp?.ok ? "Subscription registered ✅" : "Registration failed ❌");
       } catch (err) {
-        // Never let a push-setup failure affect the rest of the app
-        console.log("[FCM] Push notification setup skipped:", err);
+        console.log("[Push] Setup skipped:", err);
       }
     })();
 
