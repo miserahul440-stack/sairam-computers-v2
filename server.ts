@@ -24,108 +24,78 @@ function broadcastUpdate(type: string, data: any) {
   });
 }
 
-// FCM device tokens are stored persistently in db.json (see defaultDb.fcmTokens below)
-// so they survive server restarts/sleeps on Render's free tier.
+// Web Push subscriptions stored persistently in db.json
+// so they survive server restarts on Render free tier.
 
-// Lazily-created Google auth client for sending FCM push notifications.
-// Reused across calls so we don't re-authenticate every single time.
-let _fcmAuthClient: any = null;
-let _fcmProjectId: string | null = null;
+// VAPID keys for Web Push API
+const VAPID_PUBLIC_KEY = "BEEPCY71EZolvfc5GY6QMCv1fdroAwW_nS_GS6XH_2HAgi3nQ2birftNFLsTecV2LiE3uPHkZv9vWMcLtXPAUWo";
+const VAPID_PRIVATE_KEY = "CWjEo_1ZAVVqowGneo5Ky1d3VJrnsLCccDpPeerqQsM";
 
-async function getFcmAuthClient() {
-  if (_fcmAuthClient) return { client: _fcmAuthClient, projectId: _fcmProjectId };
-
-  const rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!rawKey) return null;
-
+// Initialize web-push VAPID details
+let webPushInitialized = false;
+function initWebPush() {
+  if (webPushInitialized) return;
   try {
-    const { GoogleAuth } = await import("google-auth-library");
-    const serviceAccount = JSON.parse(rawKey);
-    const auth = new GoogleAuth({
-      credentials: serviceAccount,
-      scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
-    });
-    _fcmAuthClient = await auth.getClient();
-    _fcmProjectId = serviceAccount.project_id;
-    return { client: _fcmAuthClient, projectId: _fcmProjectId };
-  } catch (e) {
-    console.log("FCM auth setup failed (push notifications will be skipped):", e);
-    return null;
+    const webpush = require("web-push");
+    webpush.setVapidDetails(
+      "mailto:miserahul440@gmail.com",
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+    webPushInitialized = true;
+  } catch(e) {
+    console.log("web-push init failed:", e);
   }
 }
 
-// Sends a push notification to every registered device. Designed to NEVER throw —
-// any failure here is logged and swallowed so it can never break job/announcement creation.
+// Send push notification to all subscribed devices
+// Designed to NEVER throw — crashes here cannot break job/announcement creation
 async function sendPushNotification(title: string, body: string, data: Record<string, string> = {}) {
   const db = readDb();
-  const tokens: string[] = db.fcmTokens || [];
-  if (tokens.length === 0) return;
+  const subscriptions: string[] = db.fcmTokens || [];
+  if (subscriptions.length === 0) return;
 
   try {
-    const authInfo = await getFcmAuthClient();
-    if (!authInfo) return; // Firebase not configured — SSE still handles in-app real-time updates
+    initWebPush();
+    const webpush = require("web-push");
 
-    const { client, projectId } = authInfo;
-    const accessTokenResponse = await client.getAccessToken();
-    const accessToken = typeof accessTokenResponse === "string" ? accessTokenResponse : accessTokenResponse?.token;
-    if (!accessToken) return;
+    const clickUrl = data.jobId
+      ? `https://sairam-computers-v2.vercel.app/?tab=job&jobId=${data.jobId}`
+      : data.announcementId
+      ? `https://sairam-computers-v2.vercel.app/?tab=home`
+      : data.appId
+      ? `https://sairam-computers-v2.vercel.app/?tab=history`
+      : "https://sairam-computers-v2.vercel.app/";
 
-    const deadTokens: string[] = [];
+    const payload = JSON.stringify({
+      title,
+      body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      url: clickUrl,
+      data,
+    });
+
+    const deadSubs: string[] = [];
 
     await Promise.allSettled(
-      tokens.map(async (deviceToken) => {
+      subscriptions.map(async (subStr) => {
         try {
-          const resp = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: {
-                token: deviceToken,
-                notification: { title, body },
-                data,
-                webpush: {
-                  notification: {
-                    title,
-                    body,
-                    icon: "/icon-192.png",
-                    badge: "/icon-192.png",
-                    click_action: "https://sairam-computers-v2.vercel.app",
-                  },
-                  fcm_options: {
-                    link: data.jobId
-                      ? `https://sairam-computers-v2.vercel.app/?tab=job&jobId=${data.jobId}`
-                      : data.announcementId
-                      ? `https://sairam-computers-v2.vercel.app/?tab=home`
-                      : data.appId
-                      ? `https://sairam-computers-v2.vercel.app/?tab=history`
-                      : "https://sairam-computers-v2.vercel.app/",
-                  },
-                },
-              },
-            }),
-          });
-
-          if (!resp.ok) {
-            const errText = await resp.text().catch(() => "");
-            // Token is no longer valid (app uninstalled, permission revoked, etc.) — mark for removal
-            if (resp.status === 404 || resp.status === 400) {
-              deadTokens.push(deviceToken);
-            } else {
-              console.log("FCM send failed:", resp.status, errText);
-            }
+          const sub = JSON.parse(subStr);
+          await webpush.sendNotification(sub, payload);
+        } catch (e: any) {
+          if (e?.statusCode === 404 || e?.statusCode === 410) {
+            deadSubs.push(subStr); // Expired subscription — remove
+          } else {
+            console.log("Push send error:", e?.message || e);
           }
-        } catch (e) {
-          // Network or other per-token failure — don't let it affect other tokens
         }
       })
     );
 
-    if (deadTokens.length > 0) {
+    if (deadSubs.length > 0) {
       const freshDb = readDb();
-      freshDb.fcmTokens = (freshDb.fcmTokens || []).filter((t: string) => !deadTokens.includes(t));
+      freshDb.fcmTokens = (freshDb.fcmTokens || []).filter((s: string) => !deadSubs.includes(s));
       writeDb(freshDb);
     }
   } catch (e) {
