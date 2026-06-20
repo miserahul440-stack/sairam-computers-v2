@@ -599,6 +599,16 @@ app.post("/api/fcm/register", (req, res) => {
 });
 
 
+// Admin middleware — defined early so all routes below can use it
+const verifyAdminToken = (req: any, res: any, next: any) => {
+  const adminToken = req.headers["x-admin-token"];
+  if (adminToken === "SairamAdmin@9011") {
+    next();
+  } else {
+    res.status(401).json({ error: "Unauthorized Admin" });
+  }
+};
+
 // FCM Debug - token count check (admin only)
 app.get("/api/fcm/status", verifyAdminToken, (req, res) => {
   const db = readDb();
@@ -952,15 +962,7 @@ app.post("/api/subscriptions", (req, res) => {
   });
 });
 
-// ADMIN ENDPOINTS (Admin panel authorization bypass or standard header password block)
-const verifyAdminToken = (req: any, res: any, next: any) => {
-  const adminToken = req.headers["x-admin-token"];
-  if (adminToken === "SairamAdmin@9011") {
-    next();
-  } else {
-    res.status(401).json({ error: "Unauthorized Admin" });
-  }
-};
+// ADMIN ENDPOINTS
 
 // Admin Login - Username + Password (no OTP)
 app.post("/api/admin/login", (req, res) => {
