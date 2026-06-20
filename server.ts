@@ -628,6 +628,20 @@ app.post("/api/fcm/register", (req, res) => {
   res.json({ success: true });
 });
 
+
+// FCM Debug - token count check (admin only)
+app.get("/api/fcm/status", verifyAdminToken, (req, res) => {
+  const db = readDb();
+  const tokens = db.fcmTokens || [];
+  res.json({ 
+    tokenCount: tokens.length,
+    hasServiceAccountKey: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+    projectId: process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
+      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY).project_id 
+      : null
+  });
+});
+
 app.get("/api/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
