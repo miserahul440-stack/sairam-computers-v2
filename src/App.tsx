@@ -140,7 +140,7 @@ export default function App() {
   const [selectedJobToApply, setSelectedJobToApply] = useState<JobPost | null>(null);
 
   // Real-time notification popup
-  const [realtimePopup, setRealtimePopup] = useState<{title: string; body: string; type: string} | null>(null);
+  const [realtimePopup, setRealtimePopup] = useState<{title: string; body: string; type: string; jobId?: string; announcementId?: string} | null>(null);
 
   // Automatically reset selected category and scroll smoothly to top when tab changes
   useEffect(() => {
@@ -245,15 +245,23 @@ export default function App() {
         });
 
         if (fcmToken) {
-          await fetch("/api/fcm/register", {
+          console.log("[FCM] Token obtained, registering with server...");
+          const resp = await fetch("/api/fcm/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: fcmToken }),
-          }).catch(() => {});
+          }).catch(() => null);
+          if (resp?.ok) {
+            console.log("[FCM] Token registered successfully ✅");
+          } else {
+            console.log("[FCM] Token registration failed ❌");
+          }
+        } else {
+          console.log("[FCM] No token received — check Firebase console & browser permissions");
         }
       } catch (err) {
         // Never let a push-setup failure affect the rest of the app
-        console.log("Push notification setup skipped:", err);
+        console.log("[FCM] Push notification setup skipped:", err);
       }
     })();
 
@@ -272,14 +280,21 @@ export default function App() {
             setRealtimePopup({
               type: "job",
               title: "🚨 नवीन भरती जाहीर!",
-              body: `${msg.data.title} — ${msg.data.vacancies} जागा`
+              body: `${msg.data.title} — ${msg.data.vacancies} जागा`,
+              jobId: msg.data.id
             });
             // Browser notification
             if (Notification.permission === "granted") {
-              new Notification("🚨 नवीन भरती जाहीर!", {
+              const n = new Notification("🚨 नवीन भरती जाहीर!", {
                 body: `${msg.data.title} — ${msg.data.vacancies} जागा`,
-                icon: "/icon-192.png"
+                icon: "/icon-192.png",
+                tag: msg.data.id || "job-notif",
               });
+              n.onclick = () => {
+                window.focus();
+                setActiveTab("job");
+                n.close();
+              };
             }
             setTimeout(() => setRealtimePopup(null), 6000);
           }
@@ -504,13 +519,39 @@ export default function App() {
       {/* ── REAL-TIME NOTIFICATION POPUP ── */}
       {realtimePopup && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] w-[92vw] max-w-sm animate-bounce-in">
-          <div className={`rounded-2xl shadow-2xl p-4 border-2 flex items-start gap-3 ${realtimePopup.type === "job" ? "bg-rose-600 border-rose-400 text-white" : realtimePopup.type === "announcement" ? "bg-amber-600 border-amber-400 text-white" : "bg-emerald-600 border-emerald-400 text-white"}`}>
+          <div
+            className={`rounded-2xl shadow-2xl p-4 border-2 flex items-start gap-3 cursor-pointer active:scale-95 transition-transform ${realtimePopup.type === "job" ? "bg-rose-600 border-rose-400 text-white" : realtimePopup.type === "announcement" ? "bg-amber-600 border-amber-400 text-white" : "bg-emerald-600 border-emerald-400 text-white"}`}
+            onClick={() => {
+              if (realtimePopup.type === "job") {
+                setActiveTab("job");
+                // Scroll to job section after tab switch
+                setTimeout(() => {
+                  const el = realtimePopup.jobId 
+                    ? document.getElementById(`job-${realtimePopup.jobId}`)
+                    : document.getElementById("jobs-section");
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 300);
+              } else if (realtimePopup.type === "announcement") {
+                setActiveTab("home");
+                setTimeout(() => {
+                  document.getElementById("latest-updates-block")?.scrollIntoView({ behavior: "smooth" });
+                }, 300);
+              } else if (realtimePopup.type === "status") {
+                setActiveTab("history");
+              }
+              setRealtimePopup(null);
+            }}
+          >
             <span className="text-2xl">{realtimePopup.type === "job" ? "🚨" : realtimePopup.type === "announcement" ? "📢" : "✅"}</span>
             <div className="flex-1">
               <p className="font-black text-sm">{realtimePopup.title}</p>
               <p className="text-xs font-bold opacity-90 mt-0.5">{realtimePopup.body}</p>
+              <p className="text-[10px] opacity-75 mt-1 font-bold">👆 टॅप करा → थेट उघडेल</p>
             </div>
-            <button onClick={() => setRealtimePopup(null)} className="text-white/70 hover:text-white font-black text-lg leading-none cursor-pointer">×</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setRealtimePopup(null); }}
+              className="text-white/70 hover:text-white font-black text-lg leading-none cursor-pointer"
+            >×</button>
           </div>
         </div>
       )}
