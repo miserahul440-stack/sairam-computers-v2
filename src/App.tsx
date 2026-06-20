@@ -240,7 +240,7 @@ export default function App() {
         const messaging = getMessaging(fbApp);
 
         const fcmToken = await getToken(messaging, {
-          vapidKey: "BFaAeH3Bg2rTXhwC2yiTLx6z49fbdMxlphRsWD3-wwFzAwrVnt-YOJ6D8_zaTl86r48erL1xTjQilNf1dlnAU",
+          vapidKey: "BJo-GFKDlgdwHDFqAef6GO14tXfLDHXIJx7vzvimNTdLeH972Si71wCR9GvnkpuThqKw2Qm-adj56OvrkRg15MI",
           serviceWorkerRegistration: reg,
         });
 
