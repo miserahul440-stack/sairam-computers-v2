@@ -120,10 +120,10 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
       const base64 = e.target?.result as string;
       setInlineUploads(prev => ({ ...prev, [docType]: base64 }));
       try {
-        await fetch("/api/user/upload-document", {
+        await fetch("/api/wallet/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token || ""}` },
-          body: JSON.stringify({ documentType: docType, base64Data: base64, fileName: file.name }),
+          body: JSON.stringify({ fileType: docType, fileBase64: base64, fileName: file.name }),
         });
       } catch(e) {}
     };
@@ -144,12 +144,44 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
   const govFee = isJob ? job.feeGeneral : 0;
   const totalAmount = govFee + itemCharge;
 
-  const mandatedDocs = isJob ? ["aadhar", "marksheet", "photo", "signature"] : service?.mandatedDocs || [];
-  const missingDocs: string[] = [];
+  // Map job document names to wallet keys
+  const DOC_NAME_TO_KEY: Record<string, string> = {
+    "aadhar card": "aadhar", "aadhaar card": "aadhar", "आधार कार्ड": "aadhar",
+    "pan card": "pan", "पॅन कार्ड": "pan",
+    "10th marksheet": "marksheet10", "10th certificate": "marksheet10", "ssc": "marksheet10",
+    "12th marksheet": "marksheet12", "12th certificate": "marksheet12", "hsc": "marksheet12",
+    "graduation": "graduation", "degree": "graduation", "पदवी": "graduation",
+    "photo": "photo", "passport photo": "photo", "फोटो": "photo",
+    "signature": "signature", "स्वाक्षरी": "signature", "photo & signature": "photo",
+    "caste certificate": "caste", "जातीचा दाखला": "caste",
+    "domicile certificate": "domicile", "अधिवास": "domicile",
+    "income certificate": "income", "उत्पन्न": "income",
+    "birth certificate": "birth", "जन्म दाखला": "birth",
+    "disability certificate": "disability",
+    "ncc certificate": "ncc", "ncc": "ncc",
+    "experience certificate": "experience",
+    "non-creamy layer certificate": "caste",
+  };
 
-  mandatedDocs.forEach((docType) => {
-    const urlKey = `${docType}Url` as keyof typeof user.documents;
-    if (!user.documents[urlKey]) {
+  const getWalletKey = (docName: string): string => {
+    const lower = docName.toLowerCase().trim();
+    return DOC_NAME_TO_KEY[lower] || lower.split(" ")[0];
+  };
+
+  const rawMandated = isJob
+    ? (job.mandatedDocs?.length ? job.mandatedDocs : job.importantDocuments?.length ? job.importantDocuments : ["aadhar", "marksheet10", "photo", "signature"])
+    : (service?.mandatedDocs || []);
+
+  const mandatedDocs = rawMandated.map((d: string) =>
+    d.includes("Url") ? d.replace("Url", "") : getWalletKey(d)
+  );
+
+  const missingDocs: string[] = [];
+  const safeDocuments = user.documents || {};
+
+  mandatedDocs.forEach((docType: string) => {
+    const urlKey = `${docType}Url`;
+    if (!safeDocuments[urlKey]) {
       missingDocs.push(docType);
     }
   });
@@ -182,9 +214,10 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (missingDocs.length > 0) {
+    const stillMissing = missingDocs.filter(d => !inlineUploads[d]);
+    if (stillMissing.length > 0) {
       setErrorMsg(
-        `${t.unsupportedDocsWord} ${missingDocs
+        `${t.unsupportedDocsWord} ${stillMissing
           .map((d) => getDocLabel(d))
           .join(", ")})`
       );
@@ -429,9 +462,9 @@ export default function ApplyModal({ user, token, service, job, onClose, onApply
             </button>
             <button
               type="submit"
-              disabled={loading || missingDocs.length > 0 || !formConsent}
+              disabled={loading || missingDocs.filter(d => !inlineUploads[d]).length > 0 || !formConsent}
               className={`px-5 py-2.5 rounded-xl text-white font-black text-xs shadow-md transition-all active:scale-95 flex items-center gap-1 cursor-pointer ${
-                (missingDocs.length > 0 || !formConsent) ? "bg-rose-400 opacity-60 cursor-not-allowed" : "bg-rose-600 hover:bg-rose-700"
+                (missingDocs.filter(d => !inlineUploads[d]).length > 0 || !formConsent) ? "bg-rose-400 opacity-60 cursor-not-allowed" : "bg-rose-600 hover:bg-rose-700"
               }`}
               id="submit-app-btn"
             >
