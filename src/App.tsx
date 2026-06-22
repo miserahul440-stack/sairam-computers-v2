@@ -220,17 +220,24 @@ export default function App() {
         // Dynamic import — not bundled in main chunk
         const { initializeApp, getApps } = await import("firebase/app");
         const { getMessaging, getToken } = await import("firebase/messaging");
+        const { getAuth, signInAnonymously } = await import("firebase/auth");
 
-        const app = getApps().length
-          ? getApps()[0]
-          : initializeApp({
-              apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
-              authDomain: "sairamcomputerapp.firebaseapp.com",
-              projectId: "sairamcomputerapp",
-              storageBucket: "sairamcomputerapp.firebasestorage.app",
-              messagingSenderId: "197160044288",
-              appId: "1:197160044288:web:91389a83c0850481df95e5",
-            });
+        const firebaseConfig = {
+          apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
+          authDomain: "sairamcomputerapp.firebaseapp.com",
+          projectId: "sairamcomputerapp",
+          storageBucket: "sairamcomputerapp.firebasestorage.app",
+          messagingSenderId: "197160044288",
+          appId: "1:197160044288:web:91389a83c0850481df95e5",
+        };
+
+        const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+
+        // Anonymous sign-in required for FCM getToken to work
+        const auth = getAuth(app);
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
 
         const messaging = getMessaging(app);
 
