@@ -24,30 +24,14 @@ function broadcastUpdate(type: string, data: any) {
   });
 }
 
-// ── Firebase Cloud Messaging (FCM) Push Notifications ──
-// Tokens saved in db.json — survive Render free-tier restarts
-// Uses google-auth-library to authenticate with Firebase Admin
-const FCM_PROJECT_ID = "sairamcomputerapp";
+// ── OneSignal Push Notifications ──
+const ONESIGNAL_APP_ID = "341b005d-9ed0-41c7-99b1-fd97b553ac95";
+const ONESIGNAL_REST_KEY = process.env.ONESIGNAL_REST_KEY || "";
 
 async function sendPushNotification(title: string, body: string, data: Record<string, string> = {}) {
   try {
-    const db = readDb();
-    const tokens: string[] = db.fcmTokens || [];
-    if (tokens.length === 0) return;
-
-    const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    if (!serviceAccountRaw) { console.log("[FCM] No service account key"); return; }
-
-    const { GoogleAuth } = require("google-auth-library");
-    const serviceAccount = JSON.parse(serviceAccountRaw);
-    const auth = new GoogleAuth({
-      credentials: serviceAccount,
-      scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
-    });
-    const client = await auth.getClient();
-    const tokenRes = await client.getAccessToken();
-    const accessToken = tokenRes?.token || tokenRes;
-    if (!accessToken) { console.log("[FCM] No access token"); return; }
+    const restKey = ONESIGNAL_REST_KEY;
+    if (!restKey) { console.log("[OneSignal] REST key missing"); return; }
 
     const clickUrl = data.jobId
       ? `https://sairam-computers-v2.vercel.app/?tab=job&jobId=${data.jobId}`
@@ -55,65 +39,31 @@ async function sendPushNotification(title: string, body: string, data: Record<st
       ? `https://sairam-computers-v2.vercel.app/?tab=home`
       : "https://sairam-computers-v2.vercel.app/";
 
-    const deadTokens: string[] = [];
+    const res = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Authorization": `Key ${restKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        app_id: ONESIGNAL_APP_ID,
+        included_segments: ["Total Subscribed"],
+        headings: { en: title, mr: title },
+        contents: { en: body, mr: body },
+        url: clickUrl,
+        chrome_web_icon: "https://sairam-computers-v2.vercel.app/icon-192.png",
+        data,
+      }),
+    });
 
-    await Promise.allSettled(tokens.map(async (token) => {
-      try {
-        const res = await fetch(
-          `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              message: {
-                token,
-                notification: { title, body },
-                data,
-                webpush: {
-                  notification: {
-                    title, body,
-                    icon: "/icon-192.png",
-                    badge: "/icon-192.png",
-                  },
-                  fcm_options: { link: clickUrl },
-                },
-                android: {
-                  notification: {
-                    title, body,
-                    icon: "ic_launcher",
-                    click_action: "FLUTTER_NOTIFICATION_CLICK",
-                  },
-                },
-              },
-            }),
-          }
-        );
-        if (!res.ok) {
-          const err = await res.text().catch(() => "");
-          if (res.status === 404 || res.status === 410 || err.includes("UNREGISTERED")) {
-            deadTokens.push(token);
-          } else {
-            console.log("[FCM] Send failed:", res.status, err.slice(0, 200));
-          }
-        } else {
-          console.log("[FCM] Sent to token:", token.slice(0, 20) + "...");
-        }
-      } catch (e: any) {
-        console.log("[FCM] Token error:", e?.message);
-      }
-    }));
-
-    if (deadTokens.length > 0) {
-      const freshDb = readDb();
-      freshDb.fcmTokens = (freshDb.fcmTokens || []).filter((t: string) => !deadTokens.includes(t));
-      writeDb(freshDb);
-      console.log(`[FCM] Removed ${deadTokens.length} expired tokens`);
+    const result = await res.json().catch(() => ({}));
+    if (res.ok) {
+      console.log(`[OneSignal] Sent to ${result.recipients || 0} subscribers ✅`);
+    } else {
+      console.log("[OneSignal] Send failed:", JSON.stringify(result).slice(0, 200));
     }
   } catch (e: any) {
-    console.log("[FCM] sendPushNotification error (safely ignored):", e?.message);
+    console.log("[OneSignal] sendPushNotification error (safely ignored):", e?.message);
   }
 }
 
