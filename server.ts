@@ -624,7 +624,7 @@ const verifyAdminToken = (req: any, res: any, next: any) => {
 };
 
 // FCM Debug - token count check (admin only)
-app.get("/api/fcm/status", verifyAdminToken, (req, res) => {
+app.get("/api/fcm/status", (req, res) => {
   const db = readDb();
   const tokens = db.fcmTokens || [];
   res.json({ 
