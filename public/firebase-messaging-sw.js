@@ -1,41 +1,55 @@
-// साईराम कॉम्प्युटर - Web Push Service Worker
-// App बंद असतानाही notifications येतात
+// साईराम कॉम्प्युटर — Firebase Messaging Service Worker
+// App पूर्णपणे बंद असतानाही notification येते
 
-self.addEventListener("push", (event) => {
-  let payload = {};
-  try {
-    payload = event.data ? event.data.json() : {};
-  } catch (e) {
-    payload = { title: "साईराम कॉम्प्युटर", body: event.data ? event.data.text() : "नवीन अपडेट!" };
-  }
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-  const title = payload.title || "साईराम कॉम्प्युटर";
-  const options = {
-    body: payload.body || "नवीन अपडेट आहे!",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    tag: payload.data?.jobId || payload.data?.announcementId || "sairam-notif",
-    renotify: true,
-    data: { url: payload.url || "/", ...payload.data },
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
+firebase.initializeApp({
+  apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
+  authDomain: "sairamcomputerapp.firebaseapp.com",
+  projectId: "sairamcomputerapp",
+  storageBucket: "sairamcomputerapp.firebasestorage.app",
+  messagingSenderId: "197160044288",
+  appId: "1:197160044288:web:91389a83c0850481df95e5"
 });
 
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || "/";
-  const fullUrl = url.startsWith("http") ? url : self.location.origin + url;
+const messaging = firebase.messaging();
 
+// App बंद असताना background notification
+messaging.onBackgroundMessage((payload) => {
+  const title = payload.notification?.title || 'साईराम कॉम्प्युटर';
+  const body = payload.notification?.body || 'नवीन अपडेट!';
+  const data = payload.data || {};
+
+  const clickUrl = data.jobId
+    ? `/?tab=job&jobId=${data.jobId}`
+    : data.announcementId
+    ? `/?tab=home`
+    : '/';
+
+  return self.registration.showNotification(title, {
+    body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.jobId || data.announcementId || 'sairam',
+    renotify: true,
+    data: { url: clickUrl },
+  });
+});
+
+// Notification tap → redirect
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = self.location.origin + (event.notification.data?.url || '/');
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ("focus" in client) {
-          client.postMessage({ type: "NAVIGATE", url });
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('focus' in client) {
+          client.postMessage({ type: 'NAVIGATE', url: event.notification.data?.url || '/' });
           return client.focus();
         }
       }
-      return clients.openWindow(fullUrl);
+      return clients.openWindow(url);
     })
   );
 });
