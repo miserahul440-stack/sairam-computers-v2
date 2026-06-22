@@ -24,82 +24,96 @@ function broadcastUpdate(type: string, data: any) {
   });
 }
 
-// Web Push subscriptions stored persistently in db.json
-// so they survive server restarts on Render free tier.
+// ── Firebase Cloud Messaging (FCM) Push Notifications ──
+// Tokens saved in db.json — survive Render free-tier restarts
+// Uses google-auth-library to authenticate with Firebase Admin
+const FCM_PROJECT_ID = "sairamcomputerapp";
 
-// VAPID keys for Web Push API
-const VAPID_PUBLIC_KEY = "BEEPCY71EZolvfc5GY6QMCv1fdroAwW_nS_GS6XH_2HAgi3nQ2birftNFLsTecV2LiE3uPHkZv9vWMcLtXPAUWo";
-const VAPID_PRIVATE_KEY = "CWjEo_1ZAVVqowGneo5Ky1d3VJrnsLCccDpPeerqQsM";
-
-// Initialize web-push VAPID details
-let webPushInitialized = false;
-function initWebPush() {
-  if (webPushInitialized) return;
-  try {
-    const webpush = require("web-push");
-    webpush.setVapidDetails(
-      "mailto:miserahul440@gmail.com",
-      VAPID_PUBLIC_KEY,
-      VAPID_PRIVATE_KEY
-    );
-    webPushInitialized = true;
-  } catch(e) {
-    console.log("web-push init failed:", e);
-  }
-}
-
-// Send push notification to all subscribed devices
-// Designed to NEVER throw — crashes here cannot break job/announcement creation
 async function sendPushNotification(title: string, body: string, data: Record<string, string> = {}) {
-  const db = readDb();
-  const subscriptions: string[] = db.fcmTokens || [];
-  if (subscriptions.length === 0) return;
-
   try {
-    initWebPush();
-    const webpush = require("web-push");
+    const db = readDb();
+    const tokens: string[] = db.fcmTokens || [];
+    if (tokens.length === 0) return;
+
+    const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (!serviceAccountRaw) { console.log("[FCM] No service account key"); return; }
+
+    const { GoogleAuth } = require("google-auth-library");
+    const serviceAccount = JSON.parse(serviceAccountRaw);
+    const auth = new GoogleAuth({
+      credentials: serviceAccount,
+      scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
+    });
+    const client = await auth.getClient();
+    const tokenRes = await client.getAccessToken();
+    const accessToken = tokenRes?.token || tokenRes;
+    if (!accessToken) { console.log("[FCM] No access token"); return; }
 
     const clickUrl = data.jobId
       ? `https://sairam-computers-v2.vercel.app/?tab=job&jobId=${data.jobId}`
       : data.announcementId
       ? `https://sairam-computers-v2.vercel.app/?tab=home`
-      : data.appId
-      ? `https://sairam-computers-v2.vercel.app/?tab=history`
       : "https://sairam-computers-v2.vercel.app/";
 
-    const payload = JSON.stringify({
-      title,
-      body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      url: clickUrl,
-      data,
-    });
+    const deadTokens: string[] = [];
 
-    const deadSubs: string[] = [];
-
-    await Promise.allSettled(
-      subscriptions.map(async (subStr) => {
-        try {
-          const sub = JSON.parse(subStr);
-          await webpush.sendNotification(sub, payload);
-        } catch (e: any) {
-          if (e?.statusCode === 404 || e?.statusCode === 410) {
-            deadSubs.push(subStr); // Expired subscription — remove
-          } else {
-            console.log("Push send error:", e?.message || e);
+    await Promise.allSettled(tokens.map(async (token) => {
+      try {
+        const res = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                token,
+                notification: { title, body },
+                data,
+                webpush: {
+                  notification: {
+                    title, body,
+                    icon: "/icon-192.png",
+                    badge: "/icon-192.png",
+                  },
+                  fcm_options: { link: clickUrl },
+                },
+                android: {
+                  notification: {
+                    title, body,
+                    icon: "ic_launcher",
+                    click_action: "FLUTTER_NOTIFICATION_CLICK",
+                  },
+                },
+              },
+            }),
           }
+        );
+        if (!res.ok) {
+          const err = await res.text().catch(() => "");
+          if (res.status === 404 || res.status === 410 || err.includes("UNREGISTERED")) {
+            deadTokens.push(token);
+          } else {
+            console.log("[FCM] Send failed:", res.status, err.slice(0, 200));
+          }
+        } else {
+          console.log("[FCM] Sent to token:", token.slice(0, 20) + "...");
         }
-      })
-    );
+      } catch (e: any) {
+        console.log("[FCM] Token error:", e?.message);
+      }
+    }));
 
-    if (deadSubs.length > 0) {
+    if (deadTokens.length > 0) {
       const freshDb = readDb();
-      freshDb.fcmTokens = (freshDb.fcmTokens || []).filter((s: string) => !deadSubs.includes(s));
+      freshDb.fcmTokens = (freshDb.fcmTokens || []).filter((t: string) => !deadTokens.includes(t));
       writeDb(freshDb);
+      console.log(`[FCM] Removed ${deadTokens.length} expired tokens`);
     }
-  } catch (e) {
-    console.log("sendPushNotification error (safely ignored):", e);
+  } catch (e: any) {
+    console.log("[FCM] sendPushNotification error (safely ignored):", e?.message);
   }
 }
 
