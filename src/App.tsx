@@ -204,39 +204,51 @@ export default function App() {
         fetchJobs();
     fetchAnnouncements();
 
-    // ── PUSH NOTIFICATIONS (Web Push API — no Firebase JS SDK needed) ──
+    // ── Firebase Push Notifications ──
+    // Dynamic import — isolated IIFE, cannot crash the app
     (async () => {
       try {
-        if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+        if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
 
         const perm = await Notification.requestPermission();
-        if (perm !== "granted") { console.log("[Push] Permission denied"); return; }
+        if (perm !== "granted") return;
 
+        // Register Firebase service worker
         const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
 
-        // VAPID key — convert base64url to Uint8Array
-        const VAPID = "BJo-GFKDlgdwHDFqAef6GO14tXfLDHXIJx7vzvimNTdLeH972Si71wCR9GvnkpuThqKw2Qm-adj56OvrkRg15MI";
-        const pad = "=".repeat((4 - VAPID.length % 4) % 4);
-        const b64 = (VAPID + pad).replace(/-/g, "+").replace(/_/g, "/");
-        const raw = window.atob(b64);
-        const vapidKey = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) vapidKey[i] = raw.charCodeAt(i);
+        // Dynamic import — not bundled in main chunk
+        const { initializeApp, getApps } = await import("firebase/app");
+        const { getMessaging, getToken } = await import("firebase/messaging");
 
-        let sub = await reg.pushManager.getSubscription();
-        if (!sub) {
-          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKey });
+        const app = getApps().length
+          ? getApps()[0]
+          : initializeApp({
+              apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
+              authDomain: "sairamcomputerapp.firebaseapp.com",
+              projectId: "sairamcomputerapp",
+              storageBucket: "sairamcomputerapp.firebasestorage.app",
+              messagingSenderId: "197160044288",
+              appId: "1:197160044288:web:91389a83c0850481df95e5",
+            });
+
+        const messaging = getMessaging(app);
+
+        const fcmToken = await getToken(messaging, {
+          vapidKey: "BJo-GFKDlgdwHDFqAef6GO14tXfLDHXIJx7vzvimNTdLeH972Si71wCR9GvnkpuThqKw2Qm-adj56OvrkRg15MI",
+          serviceWorkerRegistration: reg,
+        });
+
+        if (fcmToken) {
+          await fetch("/api/fcm/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: fcmToken }),
+          }).catch(() => {});
+          console.log("[FCM] Token registered ✅");
         }
-
-        const resp = await fetch("/api/fcm/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: JSON.stringify(sub) }),
-        }).catch(() => null);
-
-        console.log("[Push]", resp?.ok ? "Subscription registered ✅" : "Registration failed ❌");
-      } catch (err) {
-        console.log("[Push] Setup skipped:", err);
+      } catch (err: any) {
+        console.log("[FCM] Setup skipped:", err?.message || err);
       }
     })();
 
