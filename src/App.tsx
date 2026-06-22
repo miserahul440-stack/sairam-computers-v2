@@ -13,23 +13,7 @@ import AppInstallPrompt from "./components/AppInstallPrompt";
 import CategoryBentoBlocks from "./components/CategoryBentoBlocks";
 import { UserProfile, JobPost, Announcement, FormApplication } from "./types";
 import { Phone, Mail, HelpCircle, ShieldAlert, Cpu, Sparkles, CheckCircle, Smartphone, User, ShieldCheck } from "lucide-react";
-import { initializeApp, getApps } from "firebase/app";
-import { getMessaging, getToken } from "firebase/messaging";
-import { getAuth, signInAnonymously } from "firebase/auth";
-
-const _firebaseConfig = {
-  apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
-  authDomain: "sairamcomputerapp.firebaseapp.com",
-  projectId: "sairamcomputerapp",
-  storageBucket: "sairamcomputerapp.firebasestorage.app",
-  messagingSenderId: "197160044288",
-  appId: "1:197160044288:web:91389a83c0850481df95e5",
-};
-let _fbApp: any = null;
-function getFirebaseApp() {
-  if (!_fbApp) _fbApp = getApps().length ? getApps()[0] : initializeApp(_firebaseConfig);
-  return _fbApp;
-}
+// OneSignal handles push notifications
 
 const appTranslations = {
   mr: {
@@ -221,46 +205,31 @@ export default function App() {
         fetchJobs();
     fetchAnnouncements();
 
-    // ── Firebase Push Notifications ──
-    // Dynamic import — isolated IIFE, cannot crash the app
+    // ── OneSignal Push Notifications ──
     (async () => {
       try {
-        if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
-
-        const perm = await Notification.requestPermission();
-        if (perm !== "granted") return;
-
-        // Register Firebase service worker
-        const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-        await navigator.serviceWorker.ready;
-
-        // Dynamic import — not bundled in main chunk
-        // Use statically imported Firebase (avoids Vite chunk 404 issues)
-        const app = getFirebaseApp();
-
-        // Anonymous sign-in required for FCM getToken
-        const auth = getAuth(app);
-        if (!auth.currentUser) {
-          await signInAnonymously(auth);
-        }
-
-        const messaging = getMessaging(app);
-
-        const fcmToken = await getToken(messaging, {
-          vapidKey: "BJo-GFKDlgdwHDFqAef6GO14tXfLDHXIJx7vzvimNTdLeH972Si71wCR9GvnkpuThqKw2Qm-adj56OvrkRg15MI",
-          serviceWorkerRegistration: reg,
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+          script.defer = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("OneSignal script failed to load"));
+          document.head.appendChild(script);
         });
 
-        if (fcmToken) {
-          await fetch("/api/fcm/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: fcmToken }),
-          }).catch(() => {});
-          console.log("[FCM] Token registered ✅");
-        }
+        const w = window as any;
+        w.OneSignalDeferred = w.OneSignalDeferred || [];
+        w.OneSignalDeferred.push(async (OneSignal: any) => {
+          await OneSignal.init({
+            appId: "341b005d-9ed0-41c7-99b1-fd97b553ac95",
+            notifyButton: { enable: false },
+            allowLocalhostAsSecureOrigin: true,
+            serviceWorkerParam: { scope: "/" },
+          });
+          console.log("[OneSignal] Ready ✅");
+        });
       } catch (err: any) {
-        console.log("[FCM] Setup skipped:", err?.message || err);
+        console.log("[OneSignal] Setup skipped:", err?.message);
       }
     })();
 
