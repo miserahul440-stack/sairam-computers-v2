@@ -13,6 +13,23 @@ import AppInstallPrompt from "./components/AppInstallPrompt";
 import CategoryBentoBlocks from "./components/CategoryBentoBlocks";
 import { UserProfile, JobPost, Announcement, FormApplication } from "./types";
 import { Phone, Mail, HelpCircle, ShieldAlert, Cpu, Sparkles, CheckCircle, Smartphone, User, ShieldCheck } from "lucide-react";
+import { initializeApp, getApps } from "firebase/app";
+import { getMessaging, getToken } from "firebase/messaging";
+import { getAuth, signInAnonymously } from "firebase/auth";
+
+const _firebaseConfig = {
+  apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
+  authDomain: "sairamcomputerapp.firebaseapp.com",
+  projectId: "sairamcomputerapp",
+  storageBucket: "sairamcomputerapp.firebasestorage.app",
+  messagingSenderId: "197160044288",
+  appId: "1:197160044288:web:91389a83c0850481df95e5",
+};
+let _fbApp: any = null;
+function getFirebaseApp() {
+  if (!_fbApp) _fbApp = getApps().length ? getApps()[0] : initializeApp(_firebaseConfig);
+  return _fbApp;
+}
 
 const appTranslations = {
   mr: {
@@ -218,22 +235,10 @@ export default function App() {
         await navigator.serviceWorker.ready;
 
         // Dynamic import — not bundled in main chunk
-        const { initializeApp, getApps } = await import("firebase/app");
-        const { getMessaging, getToken } = await import("firebase/messaging");
-        const { getAuth, signInAnonymously } = await import("firebase/auth");
+        // Use statically imported Firebase (avoids Vite chunk 404 issues)
+        const app = getFirebaseApp();
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyB8DbOxDqawAt5pmIT7tW2ras76UBDdifo",
-          authDomain: "sairamcomputerapp.firebaseapp.com",
-          projectId: "sairamcomputerapp",
-          storageBucket: "sairamcomputerapp.firebasestorage.app",
-          messagingSenderId: "197160044288",
-          appId: "1:197160044288:web:91389a83c0850481df95e5",
-        };
-
-        const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-
-        // Anonymous sign-in required for FCM getToken to work
+        // Anonymous sign-in required for FCM getToken
         const auth = getAuth(app);
         if (!auth.currentUser) {
           await signInAnonymously(auth);
